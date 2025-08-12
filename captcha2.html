@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กรุณายืนยันตัวตน</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .shield-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .recaptcha-container {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .g-recaptcha {
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .submit-btn:enabled {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .submit-btn:enabled:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 15px;
+            padding: 10px;
+            background: #ffeaea;
+            border-radius: 8px;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .g-recaptcha {
+                transform: scale(0.8);
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="shield-icon">🛡️</div>
+            <h1>ยืนยันตัวตน</h1>
+            <p class="subtitle">กรุณายืนยันว่าคุณไม่ใช่หุ่นยนต์<br>เพื่อดำเนินการต่อ</p>
+        </div>
+
+        <form id="captchaForm">
+            <div class="recaptcha-container">
+                <div class="g-recaptcha" 
+                     data-sitekey="6Ld_xqMrAAAAAJ2ypwJxm4uUGJCdu6nZ0QLAeVew" 
+                     data-callback="onCaptchaSuccess"
+                     data-expired-callback="onCaptchaExpired"></div>
+            </div>
+
+            <div class="error-message" id="errorMessage">
+                กรุณายืนยัน reCAPTCHA ก่อนดำเนินการต่อ
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                ดำเนินการต่อ
+            </button>
+
+            <div class="loading" id="loadingDiv">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px; color: #666;">กำลังตรวจสอب...</p>
+            </div>
+        </form>
+
+        <div class="footer">
+            <p>หน้านี้ได้รับการปกป้องโดย reCAPTCHA และมีการบังคับใช้<br>
+            <a href="https://policies.google.com/privacy" target="_blank">นโยบายความเป็นส่วนตัว</a> และ 
+            <a href="https://policies.google.com/terms" target="_blank">เงื่อนไขการใช้งาน</a> ของ Google</p>
+        </div>
+    </div>
+
+    <script>
+        // กำหนด URL ของ JotForm ที่ต้องการ redirect ไป
+        const JOTFORM_URL = 'https://form.jotform.com/251862886068471';
+
+        // ตัวแปรเก็บสถานะ
+        let captchaVerified = false;
+
+        // Callback เมื่อ reCAPTCHA สำเร็จ
+        function onCaptchaSuccess(response) {
+            console.log('reCAPTCHA verified:', response);
+            captchaVerified = true;
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            submitBtn.disabled = false;
+            errorMessage.style.display = 'none';
+            
+            // เพิ่มเอฟเฟกต์เมื่อสำเร็จ
+            submitBtn.innerHTML = '✓ ยืนยันสำเร็จ - ดำเนินการต่อ';
+            submitBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+        }
+
+        // Callback เมื่อ reCAPTCHA หมดอายุ
+        function onCaptchaExpired() {
+            console.log('reCAPTCHA expired');
+            captchaVerified = false;
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'ดำเนินการต่อ';
+            submitBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }
+
+        // จัดการ form submission
+        document.getElementById('captchaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const errorMessage = document.getElementById('errorMessage');
+            const loadingDiv = document.getElementById('loadingDiv');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!captchaVerified) {
+                errorMessage.style.display = 'block';
+                // เพิ่มเอฟเฟกต์สั่น
+                errorMessage.style.animation = 'shake 0.5s';
+                setTimeout(() => {
+                    errorMessage.style.animation = '';
+                }, 500);
+                return;
+            }
+
+            // แสดง loading
+            submitBtn.style.display = 'none';
+            loadingDiv.style.display = 'block';
+
+            // จำลองการตรวจสอบ (ในการใช้งานจริงอาจส่งข้อมูลไปยัง server)
+            setTimeout(() => {
+                // Redirect ไป JotForm
+                window.location.href = JOTFORM_URL;
+            }, 2000);
+        });
+
+        // เพิ่ม CSS animation สำหรับเอฟเฟกต์สั่น
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 20%, 40%, 60%, 80% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ตรวจสอบการโหลด reCAPTCHA
+        window.addEventListener('load', function() {
+            // ตรวจสอบว่า reCAPTCHA โหลดสำเร็จหรือไม่
+            if (typeof grecaptcha === 'undefined') {
+                console.warn('reCAPTCHA ไม่สามารถโหลดได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+                document.getElementById('errorMessage').innerHTML = 'ไม่สามารถโหลด reCAPTCHA ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
