@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สหกิจศึกษา 2/2568 Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;
+        }
+        .stat-cards, .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card, .card {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            font-weight: bold; color: #2c3e50; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chart-container { height: 300px; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { padding: 10px; border-bottom: 1px solid #ccc; text-align: left; }
+        th { background-color: #ecf0f1; }
+        tr:hover { background-color: #f9f9f9; }
+        .filter-section {
+            background: white; padding: 15px; border-radius: 8px;
+            display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .footer {
+            text-align: center; color: #777; font-size: 0.9rem; margin-top: 40px;
+        }
+        .error-message {
+            color: #e74c3c; background: #fdecea; padding: 10px; border-radius: 4px;
+            margin-bottom: 20px; display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>สหกิจศึกษา 2/2568 Dashboard</h1>
+            <p>ข้อมูลการฝึกสหกิจศึกษาของนักศึกษาทั้งหมด</p>
+        </header>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <div class="stat-cards">
+            <div class="stat-card"><h3>จำนวนนักศึกษาทั้งหมด</h3><p id="totalStudents">0</p></div>
+            <div class="stat-card"><h3>สาขาวิชา</h3><p id="totalMajors">0</p></div>
+            <div class="stat-card"><h3>สถานประกอบการ</h3><p id="totalCompanies">0</p></div>
+            <div class="stat-card"><h3>จังหวัด</h3><p id="totalProvinces">0</p></div>
+        </div>
+
+        <div class="filter-section">
+            <div>
+                <label for="majorFilter">สาขาวิชา:</label>
+                <select id="majorFilter"><option value="all">ทั้งหมด</option></select>
+            </div>
+            <div>
+                <label for="provinceFilter">จังหวัด:</label>
+                <select id="provinceFilter"><option value="all">ทั้งหมด</option></select>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">จำนวนนักศึกษาตามสาขา</div>
+                <div class="chart-container"><canvas id="majorChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-header">การกระจายตัวตามจังหวัด</div>
+                <div class="chart-container"><canvas id="provinceChart"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">จำนวนนักศึกษา (ชาย/หญิง) ตามสาขา</div>
+                <div class="chart-container"><canvas id="genderChart"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">สถานประกอบการยอดนิยม</div>
+                <div class="chart-container"><canvas id="companyChart"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">
+                    ตารางแสดงสถานประกอบการ
+                    <input type="text" id="tableSearch" placeholder="ค้นหา..." style="padding: 5px;">
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>สาขาวิชา</th>
+                                <th>คำนำหน้า</th>
+                                <th>สถานประกอบการ</th>
+                                <th>จังหวัด</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            รายงานข้อมูลสหกิจศึกษา ภาคการศึกษาที่ 2 ปีการศึกษา 2568 | สร้างเมื่อ 27 พฤศจิกายน 2568
+        </div>
+    </div>
+    
+    <script>
+        // ข้อมูล JSON ที่ปรับปรุงใหม่ตามเงื่อนไข: สาขาเป็น "นิเทศศาสตร์บูรณาการ" และคำนำหน้าถูก Normalize
+        const jsonData = [
+          [1,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัทอาร์ทโฮมกรุ๊ป จำกัด","เชียงใหม่"],
+          [2,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ฉายแสงโปรดักชั่น จำกัด","เชียงใหม่"],
+          [3,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท เซิร์จ บิสซิเนส โซลูชันส์ จำกัด SOEJ BUSINESS SOLUTIONS CO., LTD.","กรุงเทพมหานคร"],
+          [4,"นิเทศศาสตร์บูรณาการ","นางสาว","Central Festival Chiang Mai","เชียงใหม่"],
+          [5,"นิเทศศาสตร์บูรณาการ","นางสาว","North Club Production and Studio Production House","เชียงใหม่"],
+          [6,"นิเทศศาสตร์บูรณาการ","นางสาว","Nero Nails Studio","นนทบุรี"],
+          [7,"นิเทศศาสตร์บูรณาการ","นางสาว","Club North Production and  Studio  Production House","เชียงใหม่"],
+          [8,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท อทิสเมด โกลบอล จำกัด","กรุงเทพมหานคร"],
+          [9,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท สเปซเน็กซ์ จำกัด","กรุงเทพมหานคร"],
+          [10,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ทริปเปิล วี บรอดคาสท์ จำกัด (ไทยรัฐทีวี)","กรุงเทพฯ"],
+          [11,"นิเทศศาสตร์บูรณาการ","นางสาว","GMM Grammy","กรุงเทพ"],
+          [12,"นิเทศศาสตร์บูรณาการ","นางสาว","เพจ doogunyoung (ดูกันยัง) ภายใต้ บจก. เรนเมกเกอร์ คอนซัลแทนท์","กรุงเทพมหานคร"],
+          [13,"นิเทศศาสตร์บูรณาการ","นาย","ส่วนบริหารกิจการโทรทัศน์ ภาคเหนือ จังหวัดเชียงใหม่","เชียงใหม่"],
+          [14,"นิเทศศาสตร์บูรณาการ","นางสาว","Codec Creation Co., Ltd.","กรุงเทพมหานคร"],
+          [15,"นิเทศศาสตร์บูรณาการ","นางสาว","Besties World Entertainment","กรุงเทพมหานคร"],
+          [16,"นิเทศศาสตร์บูรณาการ","นางสาว","Cheeze Looker magazine","กรุงเทพมหานคร"],
+          [17,"นิเทศศาสตร์บูรณาการ","นาย","องค์การบริหารส่วนตำบล สนับทึบ","พระนครศรีอยุธยา"],
+          [18,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท แซ่บหลาย โปรดักชั่น จำกัด","กรุงเทพมหานคร"],
+          [19,"นิเทศศาสตร์บูรณาการ","นางสาว","Kantana Post Production","กรุงเทพมหานคร"],
+          [20,"นิเทศศาสตร์บูรณาการ","นางสาว","Seoulmate","กทม"],
+          [21,"นิเทศศาสตร์บูรณาการ","นาย","Proud Creator","สมุทรปราการ"],
+          [22,"นิเทศศาสตร์บูรณาการ","นาย","เธอทีน สตูดิโอ จํากัด (THIRTEEN STUDIO)","กรุงเทพมหานคร"],
+          [23,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท วัน สามสิบเอ็ด จำกัด","กรุงเทพมหานคร"],
+          [24,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ไทย บรอดคาสติ้ง จำกัด","ปธุมธานี"],
+          [25,"นิเทศศาสตร์บูรณาการ","นาย","Chua group","เชียงใหม่"],
+          [26,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท เวิร์คพอยท์ เอ็นเทอร์เทนเมนท์ จำกัด(มหาชน)","ปทุมธานี"],
+          [27,"นิเทศศาสตร์บูรณาการ","นางสาว","สำนักงานสรรพากรพื้นที่อุดรธานี","อุดรธานี"],
+          [28,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ณัฐกฤษ ซิสเต็ม แอนด์ เทคโนโลยี่ จำกัด","ตาก"],
+          [29,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท อี.เค.เอส กรุ๊ป จำกัด","กรุงเทพมหานคร"],
+          [30,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท บ้านส้ม อาร์ตแอนด์ ดีไซน์ จำกัด","วังหิน"],
+          [31,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท จีเอ็มเอ็ม แกรมมี่ จำกัด (มหาชน)","กรุงเทพมหานคร"],
+          [32,"นิเทศศาสตร์บูรณาการ","นางสาว","COOLISM","กรุงเทพมหานคร"],
+          [33,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท จีเอ็มเอ็ม แกรมมี่ จำกัด (มหาชน)","กรุงเทพมหานคร"],
+          [34,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท สยามพิฆเนศ จำกัด","กทม."],
+          [35,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท จีเอ็มเอ็ม แกรมมี่ จำกัด มหาชน","กรุงเทพมหานคร"],
+          [36,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท สยามพิฆเนศ จำกัด","กรุงเทพมหานคร"],
+          [37,"นิเทศศาสตร์บูรณาการ","นาย","HD MEDIA STUDIO","เชียงใหม่"],
+          [38,"นิเทศศาสตร์บูรณาการ","นางสาว","WORKPOINT GROUP","ปทุมธานี"],
+          [39,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท เทรนด์ วีจี 3 จำกัด","กทม."],
+          [40,"นิเทศศาสตร์บูรณาการ","นางสาว","Club North Production and Studio Production House.","เชียงใหม่"],
+          [41,"นิเทศศาสตร์บูรณาการ","นางสาว","องค์การบริหารส่วนตำบลท่าฉนวน อ.กงไกรลาศ จ.สุโขทัย","สุโขทัย"],
+          [42,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท แรปเตอร์ โปรดักชั่น จำกัด","นนทบุรี"],
+          [43,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท เอส เอฟ คอร์ปอเรชั่น จำกัด (มหาชน)","เชียงใหม่"],
+          [44,"นิเทศศาสตร์บูรณาการ","นาย","Workpoint Entertainment","ปทุมธานี"],
+          [45,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จีเอ็มเอ็ม แกรมมี่ จำกัด (มหาชน)","กรุงเทพมหานคร"],
+          [46,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จีเอ็มเอ็ม แกรมมี่ จำกัด (มหาชน)","กรุงเทพมหานคร"],
+          [47,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท Besties World Entertainment","กรุงเทพมหานคร"],
+          [48,"นิเทศศาสตร์บูรณาการ","นางสาว","Central chiang mai","เชียงใหม่"],
+          [49,"นิเทศศาสตร์บูรณาการ","นาย","โรงแรมพับบลิคเฮ้าส์  (Public house) บริษัท ยูไนเต็ด ลาสติ้ง 31 จำกัด","กรุงเทพ"],
+          [50,"นิเทศศาสตร์บูรณาการ","นาย","สมาคมฟ้าสีรุ้งแห่งประเทศไทย ภูมิภาคล้านนา",""],
+          [51,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ไฮเฟน พลัส จำกัด","ปทุมธานี"],
+          [52,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ทริปเปิล วี บรอดคลาสท์ จำกัด","กรุงเทพฯ"],
+          [53,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จีดีเอช ห้าห้าเก้า จำกัด","กรุงเทพ"],
+          [54,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท อสมท จำกัด (มหาชน)","กรุงเทพมหานคร"],
+          [55,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ไทย บรอดคลาสติ้ง จำกัด","ปทุมธานี"],
+          [56,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท แอสเซนเดอร์ จำกัด","สมุทรปราการ"],
+          [57,"นิเทศศาสตร์บูรณาการ","นาย","The swon clinic","เชียงใหม่"],
+          [58,"นิเทศศาสตร์บูรณาการ","นาย","สำนักงานประชาสัมพันธ์จังหวัดสุพรรณบุรี","สุพรรณบุรี"],
+          [59,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท มี มายด์ วาย จำกัด","กรุงเทพมหานคร"],
+          [60,"นิเทศศาสตร์บูรณาการ","นาย","Hug gym","เชียงใหม่"],
+          [61,"นิเทศศาสตร์บูรณาการ","นาย","ห้างหุ้นส่วนจำกัด เดอะสะวอน คลินิก","เชียงใหม่"],
+          [62,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ก้องภพเซาะรีวิว จำกัด (สำนักงานใหญ่)","เชียงใหม่"],
+          [63,"นิเทศศาสตร์บูรณาการ","นาย","บริษัทแม่โจ้ ยูไนเต็ด","เชียงใหม่"],
+          [64,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท พราวด์ ครีเอเตอร์ จำกัด","สมุทรปราการ"],
+          [65,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท พรีเมียร์ ซูชิ จำกัด","สมุทรปราการ"],
+          [66,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท โพสต์ทูเดย์ จำกัด","กรุงเทพมหานคร"],
+          [67,"นิเทศศาสตร์บูรณาการ","นางสาว","ABSOLUTE BEAUTY CLINIC CO., LTD.","กรุงเทพมหานคร"],
+          [68,"นิเทศศาสตร์บูรณาการ","นางสาว","Mestyle Labs","กรุงเทพมหานคร"],
+          [69,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ภาพดีทวีสุข จำกัด","กรุงเทพมหานคร"],
+          [70,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท แมส ดิจิทัล จำกัด","กรุงเทพฯ"],
+          [71,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท แรปเตอร์ โปรดักชั่น จำกัด","นนทบุรี"],
+          [72,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท KTC COOP - Krungthai Card Public Co.,Ltd.","Bangkok"],
+          [73,"นิเทศศาสตร์บูรณาการ","นางสาว","AGGC Vtuber Project","Home"],
+          [74,"นิเทศศาสตร์บูรณาการ","นางสาว","UPster","กรุงเทพมหานคร"],
+          [75,"นิเทศศาสตร์บูรณาการ","นาย","HD MEDIA STUDIO","เชียงใหม่"],
+          [76,"นิเทศศาสตร์บูรณาการ","นางสาว","Brite Panther","กทม."],
+          [77,"นิเทศศาสตร์บูรณาการ","นางสาว","Orifree Co.,Ltd.","กรุงเทพมหานคร"],
+          [78,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ส้มหล่น โปรดักชั่น จำกัด","กรุงเทพมหานคร"],
+          [79,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท แรปเตอร์ โปรดักชั่น จำกัด  (สำนักงานใหญ่)","นนทบุรี"],
+          [80,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จีเอ็มเอ็ม มีเดีย จำกัด (มหาชน)","กรุงเทพ"],
+          [81,"นิเทศศาสตร์บูรณาการ","นาย","อินเทรนด์ เอนเตอร์ เทนเมนท์ จำกัด","เชียงใหม่"],
+          [82,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท วัน สามสิบเอ็ด จำกัด","กรุงเทพมหานคร"],
+          [83,"นิเทศศาสตร์บูรณาการ","นางสาว","MAMA C MERCHANDISING (THAILAND) CO., LTD.","กรุงเทพฯ"],
+          [84,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท อินเทรนด์ เอนเตอร์เทนเมนท์ จำกัด","เชียงใหม่"],
+          [85,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัทเวิร์คพอยท์ เอ็นเทอร์เทนเมนท์ จำกัด (มหาชน)","ปทุมธานี"],
+          [86,"นิเทศศาสตร์บูรณาการ","นางสาว","สถานีวิทยุโทรทัศน์แห่งประเทศไทย จังหวัดพิษณุโลก","พิษณุโลก"],
+          [87,"นิเทศศาสตร์บูรณาการ","นางสาว","Gorilla Event","กรุงเทพมหานคร"],
+          [88,"นิเทศศาสตร์บูรณาการ","นางสาว","sum up","กรุงเทพฯ"],
+          [89,"นิเทศศาสตร์บูรณาการ","นางสาว","Tia Music","กรุงเทพมหานคร"],
+          [90,"นิเทศศาสตร์บูรณาการ","นางสาว","Tia Music","กรุงเทพมหานคร"],
+          [91,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จือปาก จำกัด","กทม."],
+          [92,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท โฟร์โนล็อค จำกัด","กรุงเทพมหานคร"],
+          [93,"นิเทศศาสตร์บูรณาการ","นางสาว","คณะนิเทศศาสตร์ มหาวิทยาลัยธุรกิจบัณฑิตย์","กรุงเทพฯ"],
+          [94,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท นะโม อินเตอร์ กรุ๊ป จำกัด","กรุงเทพมหานคร"],
+          [95,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ทีวีพูล กรุ๊ป จำกัด","กรุงเทพมหานคร"],
+          [96,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท มโน ทำดี จำกัด(สำนักงานใหญ่)","สมุทรปราการ"],
+          [97,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท LUMERA (Thailand) Co., Ltd.","พญาไท"],
+          [98,"นิเทศศาสตร์บูรณาการ","นางสาว","มนัสนันท์ จันทร์พิทักษ์","กรุงเทพ"],
+          [99,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ริชสไมล์ จำกัด (RICH SMILE CO., LTD.)","กรุงเทพมหานคร"],
+          [100,"นิเทศศาสตร์บูรณาการ","นาย","กำลังนิยม สตูดิโอ","เชียงใหม่"],
+          [101,"นิเทศศาสตร์บูรณาการ","นางสาว","KhonKeng Marketing co., ltd.","เชียงใหม่"],
+          [102,"นิเทศศาสตร์บูรณาการ","นางสาว","กฟผ. โรงไฟฟ้าแม่เมาะ จ.ลำปาง","ลำปาง"],
+          [103,"นิเทศศาสตร์บูรณาการ","นางสาว","Baan Dek Foundation","เชียงใหม่"],
+          [104,"นิเทศศาสตร์บูรณาการ","นางสาว","กฟผ. โรงไฟฟ้าแม่เมาะ จ.ลำาปาง","ลำปาง"],
+          [105,"นิเทศศาสตร์บูรณาการ","นาย","จีนี่ เรคคอร์ด (Genie records)","กรุงเทพมหานคร"],
+          [106,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท มารีน สเคป (ประเทศไทย) จำกัด  (สาขาที่ 1)","เชียงใหม่"],
+          [107,"นิเทศศาสตร์บูรณาการ","นาย","Big Creative","เชียงใหม่"],
+          [108,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท โค้ด ออน คลาวด์ จำกัด (สำนักงานใหญ่)","กรุงเทพมหานคร"],
+          [109,"นิเทศศาสตร์บูรณาการ","นางสาว","RS Livewell","กรุงเทพมหานคร"],
+          [110,"นิเทศศาสตร์บูรณาการ","นาย","กำลังนิยม สตูดิโอ","เชียงใหม่"],
+          [111,"นิเทศศาสตร์บูรณาการ","นาย","กฟผ. โรงไฟฟ้าแม่เมาะ จ.ลำปาง","ลำปาง"],
+          [112,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท สวยรับทรัพย์ จำกัด","กรุงเทพมหานคร"],
+          [113,"นิเทศศาสตร์บูรณาการ","นางสาว","สำนักงานเลขาธิการสภาผู้แทนราษฎร","กรุงเทพฯ"],
+          [114,"นิเทศศาสตร์บูรณาการ","นางสาว","FRT Entertainment","กรุงเทพมหานคร"],
+          [115,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ฉายแสง โปรดักชั่น จำกัด","เชียงใหม่"],
+          [116,"นิเทศศาสตร์บูรณาการ","นาย","Wanneewandee Production","เชียงใหม่"],
+          [117,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ตันบุญ จำกัด (โครงการวันนิมมานเชียงใหม่)","นิมมานเชียงใหม่"],
+          [118,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ยืนเดี่ยว จำกัด","กรุงเทพ"],
+          [119,"นิเทศศาสตร์บูรณาการ","นางสาว","Ok Prop wedding Planner","เชียงใหม่"],
+          [120,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ชิงไฉ่ คอสเมติก จำกัด (แบรนด์ มิวสิค ฟลาวเวอร์)","กรุงเทพมหานคร"],
+          [121,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท มายา ดีเวลลอปเม้นท์ จำกัด","เชียงใหม่"],
+          [122,"นิเทศศาสตร์บูรณาการ","นางสาว","เชียงใหม่ไนท์ซาฟารี","เชียงใหม่"],
+          [123,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท เอนเตอเทนเมนท์29 จำกัด","นนทบุรี"],
+          [124,"นิเทศศาสตร์บูรณาการ","นางสาว","2T2P (thailand) co. ltd","กรุงเทพมหานคร"],
+          [125,"นิเทศศาสตร์บูรณาการ","นาย","ส่วนบริหารกิจการโทรทัศน์ ภาคเหนือ จังหวัดเชียงใหม่","เชียงใหม่"],
+          [126,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท เอฟโวลูชั่นสกิน จำกัด","เชียงใหม่"],
+          [127,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ทริปเปิล วี บรอดคาสท์ จำกัด (ไทยรัฐทีวี)","กรุงเทพฯ"],
+          [128,"นิเทศศาสตร์บูรณาการ","นางสาว","บิทิชีโน (ประเทศไทย) จำกัด","กรุงเทพมหานคร"],
+          [129,"นิเทศศาสตร์บูรณาการ","นาย","นาย ศิวกร กาญจนมุสิก","เชียงใหม่"],
+          [130,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท อินดิเพนเด้นท์ อาร์ทิสท์ เมเนจเม้นท์ จำกัด","กรุงเทพมหานคร"],
+          [131,"นิเทศศาสตร์บูรณาการ","นางสาว","PPTVHD36","กรุงเทพมหานคร"],
+          [132,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ยืนเดี่ยว จำกัด (สำนักงานใหญ่)","กรุงเทพมหานคร"],
+          [133,"นิเทศศาสตร์บูรณาการ","นาย","Melody Sunset Cruises Co.,Ltd.","ภูเก็ต"],
+          [134,"นิเทศศาสตร์บูรณาการ","นางสาว","Idol Factory","กรุงเทพมหานคร"],
+          [135,"นิเทศศาสตร์บูรณาการ","นาย","Hug Gym","เชียงใหม่"],
+          [136,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท มิตรดี สตูดิโอ จำกัด","เชียงใหม่"],
+          [137,"นิเทศศาสตร์บูรณาการ","นางสาว","Atismed Global","กรุงเทพมหานคร"],
+          [138,"นิเทศศาสตร์บูรณาการ","นางสาว","โครงการวันนิมมาน","เชียงใหม่"],
+          [139,"นิเทศศาสตร์บูรณาการ","นางสาว","Big creative","เชียงใหม่"],
+          [140,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ทีวีพูลกรุ๊ป จำกัด","กรุงเทพมหานคร"],
+          [141,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท จ๊อบพร้อมท์ จำกัด","กรุงเทพมหานคร"],
+          [142,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท ทีวีพูล กรุ๊ป จำกัด","กรุงเทพมหานคร"],
+          [143,"นิเทศศาสตร์บูรณาการ","นางสาว","OK Prop wedding Planner","เชียงใหม่"],
+          [144,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท ออล์โซล์ อินเตอร์เนชั่นแนล จำกัด ( ALL SOULS INTERNATIONAL CO., LTD.","เชียงใหม่"],
+          [145,"นิเทศศาสตร์บูรณาการ","นางสาว","บริษัท LUMERA","พญาไท"],
+          [146,"นิเทศศาสตร์บูรณาการ","นางสาว","ศูนย์การค้ามาร์เก็ตวิลเลจ สุวรรณภูมิ","สมุทรปราการ"],
+          [147,"นิเทศศาสตร์บูรณาการ","นาย","โกล แกรนด์เนสส์ จำกัด (สำนักงานใหญ่)","กรุงเทพฯ"],
+          [148,"นิเทศศาสตร์บูรณาการ","นางสาว","DESTINY  CONTENT","กรุงเทพ"],
+          [149,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท โกลแกรนด์เนสส์ จำกัด","กรุงเทพฯ"],
+          [150,"นิเทศศาสตร์บูรณาการ","นาย","บริษัท โกล แกรนด์เนสส์ จำกัด (สำนักงานใหญ่)","กรุงเทพฯ"],
+          [151,"นิเทศศาสตร์บูรณาการ","นางสาว","Hug Gym","เชียงใหม่"]
+        ];
+
+        let studentData = [];
+        let charts = {};
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function populateFilters(data) {
+            const majorSelect = document.getElementById("majorFilter");
+            const provinceSelect = document.getElementById("provinceFilter");
+
+            const majors = [...new Set(data.map(d => d.major || '').filter(Boolean))];
+            const provinces = [...new Set(data.map(d => d.province || '').filter(Boolean))];
+
+            // Re-populate Major Filter
+            majorSelect.innerHTML = '<option value="all">ทั้งหมด</option>' + 
+                majors.map(m => `<option>${m}</option>`).join('');
+            
+            // Re-populate Province Filter
+            provinceSelect.innerHTML = '<option value="all">ทั้งหมด</option>' +
+                provinces.map(p => `<option>${p}</option>`).join('');
+        }
+
+        function updateSummary(data) {
+            const majors = new Set(data.map(d => d.major || '').filter(Boolean));
+            const companies = new Set(data.map(d => d.company || '').filter(Boolean));
+            const provinces = new Set(data.map(d => d.province || '').filter(Boolean));
+
+            document.getElementById("totalStudents").innerText = data.length;
+            document.getElementById("totalMajors").innerText = majors.size;
+            document.getElementById("totalCompanies").innerText = companies.size;
+            document.getElementById("totalProvinces").innerText = provinces.size;
+        }
+
+        function renderTable(data) {
+            const body = document.getElementById("tableBody");
+            body.innerHTML = "";
+            
+            if (data.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" style="text-align: center;">ไม่พบข้อมูล</td></tr>`;
+                return;
+            }
+
+            data.forEach((row, i) => {
+                body.innerHTML += `<tr>
+                    <td>${i + 1}</td>
+                    <td>${row.major || '-'}</td>
+                    <td>${row.gender || '-'}</td>
+                    <td>${row.company || '-'}</td>
+                    <td>${row.province || '-'}</td>
+                </tr>`;
+            });
+        }
+
+        function drawChart(id, type, labels, data, colors, stacked = false) {
+            if (charts[id]) charts[id].destroy();
+            
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            
+            charts[id] = new Chart(ctx, {
+                type,
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: colors }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, stacked } }
+                }
+            });
+        }
+
+        function updateCharts(data) {
+            // Clear all charts first
+            Object.keys(charts).forEach(key => {
+                if (charts[key]) charts[key].destroy();
+            });
+
+            if (data.length === 0) return;
+
+            const majorCounts = {};
+            const provinceCounts = {};
+            const companyCounts = {};
+            const genderByMajor = {};
+
+            data.forEach(d => {
+                const major = d.major || 'ไม่ระบุสาขา';
+                const province = d.province || 'ไม่ระบุ';
+                const company = d.company || 'ไม่ระบุ';
+                const gender = d.gender || 'ไม่ระบุ';
+
+                majorCounts[major] = (majorCounts[major] || 0) + 1;
+                
+                // Grouping provinces (e.g., กรุงเทพ vs กรุงเทพมหานคร vs กทม.)
+                let cleanProvince = province.replace(/มหานคร|ฯ/g, '').trim();
+                if (cleanProvince.includes('กรุงเทพ')) cleanProvince = 'กรุงเทพ';
+                if (cleanProvince.includes('สมุทรปราการ')) cleanProvince = 'สมุทรปราการ';
+                if (cleanProvince.includes('ปทุมธานี')) cleanProvince = 'ปทุมธานี';
+                if (cleanProvince.includes('นนทบุรี')) cleanProvince = 'นนทบุรี';
+                if (cleanProvince.includes('เชียงใหม่') || cleanProvince.includes('นิมมานเชียงใหม่')) cleanProvince = 'เชียงใหม่';
+
+
+                provinceCounts[cleanProvince] = (provinceCounts[cleanProvince] || 0) + 1;
+
+                companyCounts[company] = (companyCounts[company] || 0) + 1;
+
+                if (!genderByMajor[major]) genderByMajor[major] = {};
+                genderByMajor[major][gender] = (genderByMajor[major][gender] || 0) + 1;
+            });
+
+            // 1. Major Chart
+            drawChart("majorChart", "pie", 
+                Object.keys(majorCounts), 
+                Object.values(majorCounts),
+                ["#3498db", "#e74c3c", "#f1c40f", "#2ecc71", "#9b59b6", "#1abc9c", "#d35400"],
+                false
+            );
+
+            // 2. Province Chart
+            const sortedProvinces = Object.entries(provinceCounts)
+                .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                .map(item => item[0]);
+            
+            drawChart("provinceChart", "bar", 
+                sortedProvinces, 
+                sortedProvinces.map(p => provinceCounts[p]),
+                sortedProvinces.map(() => "#9b59b6"),
+                false
+            );
+
+            // 3. Gender by Major Chart
+            const genderLabels = Object.keys(genderByMajor);
+            const genderDatasets = ["นาย", "นางสาว", "ไม่ระบุ"].map(gender => ({
+                label: gender,
+                data: genderLabels.map(m => genderByMajor[m]?.[gender] || 0),
+                backgroundColor: 
+                    gender === "นาย" ? "#2980b9" : 
+                    gender === "นางสาว" ? "#e67e22" : "#95a5a6"
+            }));
+
+            if (charts["genderChart"]) charts["genderChart"].destroy();
+            charts["genderChart"] = new Chart(document.getElementById("genderChart"), {
+                type: "bar",
+                data: { labels: genderLabels, datasets: genderDatasets.filter(d => d.label) },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: "bottom" } }, 
+                    scales: { y: { beginAtZero: true, stacked: true } }
+                }
+            });
+
+            // 4. Top Companies Chart
+            const topCompanies = Object.entries(companyCounts)
+                .sort((a,b) => b[1]-a[1])
+                .slice(0,10);
+            drawChart("companyChart", "bar", 
+                topCompanies.map(c => c[0]), 
+                topCompanies.map(c => c[1]), 
+                topCompanies.map(() => "#16a085"),
+                false
+            );
+        }
+
+        function applyFilters() {
+            const major = document.getElementById("majorFilter").value;
+            const province = document.getElementById("provinceFilter").value;
+
+            let filtered = [...studentData];
+            
+            // Filter by Major
+            if (major !== "all") {
+                 filtered = filtered.filter(d => d.major === major);
+            }
+
+            // Filter by Province (using a simplified/cleaned name for consistency)
+            if (province !== "all") {
+                filtered = filtered.filter(d => {
+                    let cleanDataProvince = (d.province || '').replace(/มหานคร|ฯ/g, '').trim();
+                    if (cleanDataProvince.includes('กรุงเทพ')) cleanDataProvince = 'กรุงเทพ';
+                    if (cleanDataProvince.includes('สมุทรปราการ')) cleanDataProvince = 'สมุทรปราการ';
+                    if (cleanDataProvince.includes('ปทุมธานี')) cleanDataProvince = 'ปทุมธานี';
+                    if (cleanDataProvince.includes('นนทบุรี')) cleanDataProvince = 'นนทบุรี';
+                    if (cleanDataProvince.includes('เชียงใหม่') || cleanDataProvince.includes('นิมมานเชียงใหม่')) cleanDataProvince = 'เชียงใหม่';
+                    
+                    return cleanDataProvince.toLowerCase() === province.toLowerCase();
+                });
+            }
+
+            updateSummary(filtered);
+            updateCharts(filtered);
+            renderTable(filtered);
+        }
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            hideError();
+
+            document.getElementById("majorFilter").addEventListener("change", applyFilters);
+            document.getElementById("provinceFilter").addEventListener("change", applyFilters);
+            
+            // Search function for the table
+            document.getElementById("tableSearch").addEventListener("input", function() {
+                const val = this.value.toLowerCase();
+                document.querySelectorAll("#tableBody tr").forEach(row => {
+                    row.style.display = [...row.children].some(td => 
+                        td.textContent.toLowerCase().includes(val)
+                    ) ? "" : "none";
+                });
+            });
+
+            try {
+                // แปลงข้อมูล JSON (Array of Arrays) เป็น Array of Objects
+                studentData = jsonData.map(row => ({
+                    id: row[0],
+                    major: row[1] || 'ไม่ระบุ',
+                    gender: row[2] || 'ไม่ระบุ',
+                    company: row[3] || 'ไม่ระบุ',
+                    province: row[4] || 'ไม่ระบุ'
+                }));
+
+                if (studentData.length === 0) {
+                    showError('ไม่พบข้อมูลในไฟล์');
+                    return;
+                }
+
+                populateFilters(studentData);
+                applyFilters();
+
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการเริ่มต้น:', error);
+                showError(`เกิดข้อผิดพลาดในการเริ่มต้นระบบ: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
