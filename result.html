@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบตรวจสอบผลการประเมิน - คณะศิลปศาสตร์</title>
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        mju: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981', // Emerald 500
+                            600: '#059669', // Emerald 600
+                            700: '#047857', // Emerald 700
+                            800: '#065f46', // Emerald 800
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fafafa; /* Minimal Off-white background */
+        }
+        .hover-card {
+            transition: all 0.3s ease;
+        }
+        .hover-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="text-gray-700 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-gray-100">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-mju-50 p-2 rounded-lg text-mju-700">
+                        <i data-lucide="building-2" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-lg text-gray-800 leading-tight">คณะกรรมการฝ่ายลงทะเบียนฯ</h1>
+                        <p class="text-xs text-mju-600 font-light">คณะศิลปศาสตร์ มหาวิทยาลัยแม่โจ้</p>
+                    </div>
+                </div>
+                <div class="hidden md:block text-sm text-gray-400">
+                    ระบบรายงานผลการประเมินบัณฑิต
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-5xl mx-auto px-4 py-12 w-full">
+        
+        <div class="text-center mb-12">
+            <span class="inline-block px-3 py-1 bg-mju-50 text-mju-700 text-xs font-medium rounded-full mb-3 border border-mju-100">
+                Data Dashboard
+            </span>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">ผลการสำรวจและประเมินบัณฑิต</h2>
+            <p class="text-gray-500 font-light">กรุณาเลือกหัวข้อที่ต้องการตรวจสอบข้อมูล</p>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Card 1: Curriculum Satisfaction -->
+            <a href="https://maejo.link/pf5f" target="_blank" class="hover-card bg-white rounded-2xl p-6 border border-gray-100 flex flex-col h-full group cursor-pointer relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-mju-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="mb-4 bg-mju-50 w-12 h-12 rounded-xl flex items-center justify-center text-mju-600 group-hover:bg-mju-500 group-hover:text-white transition-colors">
+                    <i data-lucide="book-open-check" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 group-hover:text-mju-700">ความพึงพอใจต่อหลักสูตร</h3>
+                <p class="text-sm text-gray-500 font-light mb-6 flex-grow">
+                    รายงานผลความพึงพอใจของบัณฑิตใหม่ที่มีต่อคุณภาพหลักสูตรและการเรียนการสอน
+                </p>
+                <div class="flex items-center text-mju-600 text-sm font-medium">
+                    เปิดดูรายงาน <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card 2: Employment Status -->
+            <a href="https://erp.mju.ac.th/surveyRpt1New.aspx?year=2567" target="_blank" class="hover-card bg-white rounded-2xl p-6 border border-gray-100 flex flex-col h-full group cursor-pointer relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-mju-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="mb-4 bg-mju-50 w-12 h-12 rounded-xl flex items-center justify-center text-mju-600 group-hover:bg-mju-500 group-hover:text-white transition-colors">
+                    <i data-lucide="briefcase" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 group-hover:text-mju-700">ภาวะการมีงานทำ</h3>
+                <p class="text-sm text-gray-500 font-light mb-6 flex-grow">
+                    สถิติและข้อมูลภาวะการมีงานทำของบัณฑิต ประจำปี 2567 (ระบบ ERP)
+                </p>
+                <div class="flex items-center text-mju-600 text-sm font-medium">
+                    เปิดดูรายงาน <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card 3: Graduation Ceremony -->
+            <a href="https://maejo.link/Y0Ao" target="_blank" class="hover-card bg-white rounded-2xl p-6 border border-gray-100 flex flex-col h-full group cursor-pointer relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-mju-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="mb-4 bg-mju-50 w-12 h-12 rounded-xl flex items-center justify-center text-mju-600 group-hover:bg-mju-500 group-hover:text-white transition-colors">
+                    <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 group-hover:text-mju-700">ประเมินงานรับปริญญา ครั้งที่ 48</h3>
+                <p class="text-sm text-gray-500 font-light mb-6 flex-grow">
+                    ผลสำรวจความพึงพอใจต่อพิธีรับพระราชทานปริญญาบัตร
+                </p>
+                <div class="flex items-center text-mju-600 text-sm font-medium">
+                    เปิดดูรายงาน <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-6">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="text-sm text-gray-400">© 2026 Faculty of Liberal Arts, Maejo University.</p>
+            <p class="text-xs text-gray-300 mt-1">Authorized Access Only</p>
+        </div>
+    </footer>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
