@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- ฟอนต์ Prompt อ่านง่าย สบายตา -->
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- ดึง Icon สวยๆ มินิมอลมาใช้ -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -28,6 +28,7 @@
                             100: '#fce7f3',
                             500: '#ec4899',
                             600: '#db2777',
+                            700: '#be185d',
                         }
                     }
                 }
@@ -46,7 +47,7 @@
     <div class="max-w-md w-full bg-white rounded-3xl shadow-lg overflow-hidden border border-pink-100">
         
         <!-- ส่วนหัว (Header) -->
-        <div class="bg-pink-500 p-8 text-center text-white relative">
+        <div class="bg-pink-500 p-8 text-center text-white relative overflow-hidden">
             <!-- ตกแต่งพื้นหลังนิดหน่อย -->
             <div class="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
                 <div class="absolute -top-10 -right-10 w-32 h-32 bg-white rounded-full blur-2xl"></div>
@@ -55,84 +56,124 @@
             
             <i data-lucide="graduation-cap" class="w-16 h-16 mx-auto mb-3 drop-shadow-md"></i>
             <h1 class="text-2xl font-semibold tracking-wide">ยินดีด้วยนะบัณฑิตคณะศิลปศาสตร์! 🎉</h1>
-            <p class="text-pink-100 text-sm mt-2">รบกวนสละเวลาทำแบบสอบถาม<br>ให้ครบทั้ง 3 ส่วนด้านล่างนี้ด้วยน้า</p>
+            <p class="text-pink-100 text-sm mt-2">รบกวนสละเวลาทำแบบสอบถาม<br>ให้ครบตามเงื่อนไขด้านล่างนี้ด้วยน้า</p>
         </div>
 
-        <!-- ส่วนของลิงก์แบบสอบถาม -->
-        <div class="p-5 space-y-4">
+        <!-- Container เนื้อหา -->
+        <div class="p-5">
             
-            <!-- บล็อคที่ 1: คุณภาพหลักสูตร -->
-            <a href="https://maejo.link/og6D" target="_blank" rel="noopener noreferrer" class="block group">
-                <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
-                    <!-- ไอคอน (Thumbnail) -->
-                    <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
-                        <i data-lucide="book-open-check" class="w-8 h-8"></i>
-                    </div>
-                    <!-- ข้อความ -->
-                    <div class="flex-1">
-                        <h2 class="text-gray-800 font-medium leading-tight group-hover:text-pink-700 transition-colors duration-300">
-                            1. แบบสอบถามความพึงพอใจ<br>ที่มีต่อคุณภาพหลักสูตร
-                        </h2>
-                        <div class="text-pink-500 text-sm mt-2 flex items-center font-medium">
-                            <span class="bg-pink-100 px-2 py-1 rounded-md flex items-center">
-                                <i data-lucide="external-link" class="w-3 h-3 mr-1"></i> กดทำแบบสอบถาม
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </a>
+            <!-- ================= ส่วนที่ 1 ================= -->
+            <div class="mb-2">
+                <h3 class="text-pink-700 font-bold text-lg mb-3 flex items-center">
+                    <span class="bg-pink-100 w-8 h-8 rounded-full flex items-center justify-center mr-2 text-pink-600 text-sm">1</span>
+                    แบบสอบถามที่ต้องทำทุกคน
+                </h3>
+            </div>
 
-            <!-- บล็อคที่ 2: ภาวะการมีงานทำ -->
-            <a href="https://erp.mju.ac.th/surveyStudentLogin.aspx" target="_blank" rel="noopener noreferrer" class="block group">
-                <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
-                    <!-- ไอคอน (Thumbnail) -->
-                    <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
-                        <i data-lucide="briefcase" class="w-8 h-8"></i>
-                    </div>
-                    <!-- ข้อความ -->
-                    <div class="flex-1">
-                        <h2 class="text-gray-800 font-medium leading-tight group-hover:text-pink-700 transition-colors duration-300">
-                            2. แบบสอบถามภาวะการมีงานทำ<br>ของบัณฑิต
-                        </h2>
-                        <div class="text-pink-500 text-sm mt-2 flex items-center font-medium">
-                            <span class="bg-pink-100 px-2 py-1 rounded-md flex items-center">
-                                <i data-lucide="external-link" class="w-3 h-3 mr-1"></i> กดทำแบบสอบถาม
-                            </span>
+            <div class="space-y-3">
+                <!-- บล็อคที่ 1: คุณภาพหลักสูตร -->
+                <a href="https://maejo.link/og6D" target="_blank" rel="noopener noreferrer" class="block group">
+                    <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
+                        <!-- ไอคอน -->
+                        <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
+                            <i data-lucide="book-open-check" class="w-6 h-6"></i>
+                        </div>
+                        <!-- ข้อความ -->
+                        <div class="flex-1">
+                            <h2 class="text-gray-800 font-medium leading-tight text-sm group-hover:text-pink-700 transition-colors duration-300">
+                                1. ความพึงพอใจต่อคุณภาพหลักสูตร
+                            </h2>
+                            <div class="text-pink-500 text-xs mt-1 font-medium">
+                                คลิกเพื่อทำแบบสอบถาม
+                            </div>
                         </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <!-- บล็อคที่ 3: พระราชทานปริญญาบัตร -->
-            <a href="https://maejo.link/fZo2" target="_blank" rel="noopener noreferrer" class="block group">
-                <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
-                    <!-- ไอคอน (Thumbnail) -->
-                    <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
-                        <i data-lucide="award" class="w-8 h-8"></i>
-                    </div>
-                    <!-- ข้อความ -->
-                    <div class="flex-1">
-                        <h2 class="text-gray-800 font-medium leading-tight group-hover:text-pink-700 transition-colors duration-300">
-                            3. แบบสอบถามความพึงพอใจฯ <br>เข้ารับพระราชทานปริญญาบัตร ครั้งที่ 48
-                        </h2>
-                        <div class="text-pink-500 text-sm mt-2 flex items-center font-medium">
-                            <span class="bg-pink-100 px-2 py-1 rounded-md flex items-center">
-                                <i data-lucide="external-link" class="w-3 h-3 mr-1"></i> กดทำแบบสอบถาม
-                            </span>
+                <!-- บล็อคที่ 2: ภาวะการมีงานทำ -->
+                <a href="https://erp.mju.ac.th/surveyStudentLogin.aspx" target="_blank" rel="noopener noreferrer" class="block group">
+                    <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
+                        <!-- ไอคอน -->
+                        <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
+                            <i data-lucide="briefcase" class="w-6 h-6"></i>
+                        </div>
+                        <!-- ข้อความ -->
+                        <div class="flex-1">
+                            <h2 class="text-gray-800 font-medium leading-tight text-sm group-hover:text-pink-700 transition-colors duration-300">
+                                2. ภาวะการมีงานทำของบัณฑิต
+                            </h2>
+                            <div class="text-pink-500 text-xs mt-1 font-medium">
+                                คลิกเพื่อทำแบบสอบถาม
+                            </div>
                         </div>
                     </div>
-                </div>
-            </a>
+                </a>
+
+                <!-- บล็อคที่ 3: พระราชทานปริญญาบัตร -->
+                <a href="https://maejo.link/fZo2" target="_blank" rel="noopener noreferrer" class="block group">
+                    <div class="border-2 border-pink-100 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-50 group-hover:shadow-md cursor-pointer">
+                        <!-- ไอคอน -->
+                        <div class="bg-pink-100 p-3 rounded-xl text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
+                            <i data-lucide="award" class="w-6 h-6"></i>
+                        </div>
+                        <!-- ข้อความ -->
+                        <div class="flex-1">
+                            <h2 class="text-gray-800 font-medium leading-tight text-sm group-hover:text-pink-700 transition-colors duration-300">
+                                3. ความพึงพอใจงานรับปริญญาฯ
+                            </h2>
+                            <div class="text-pink-500 text-xs mt-1 font-medium">
+                                คลิกเพื่อทำแบบสอบถาม
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- เส้นคั่น Section -->
+            <div class="my-6 border-t-2 border-dashed border-pink-200 relative">
+                <span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-pink-300 text-xs">
+                    <i data-lucide="star" class="w-4 h-4 inline"></i>
+                </span>
+            </div>
+
+            <!-- ================= ส่วนที่ 2 ================= -->
+            <div class="mb-3">
+                <h3 class="text-pink-700 font-bold text-lg mb-1 flex items-center">
+                    <span class="bg-pink-100 w-8 h-8 rounded-full flex items-center justify-center mr-2 text-pink-600 text-sm">2</span>
+                    เฉพาะสาขานิเทศศาสตร์บูรณาการ
+                </h3>
+                <p class="text-xs text-gray-500 ml-10">สาขาอื่นข้ามส่วนนี้ไปได้เลยครับ</p>
+            </div>
+
+            <div class="space-y-3">
+                 <!-- บล็อคที่ 4: เฉพาะนิเทศ -->
+                 <a href="https://maejo.link/n7Le" target="_blank" rel="noopener noreferrer" class="block group">
+                    <div class="border-2 border-pink-100 bg-pink-50/50 rounded-2xl p-4 flex items-center space-x-4 transition-all duration-300 group-hover:border-pink-400 group-hover:bg-pink-100 group-hover:shadow-md cursor-pointer">
+                        <!-- ไอคอน -->
+                        <div class="bg-white p-3 rounded-xl text-pink-600 border border-pink-100 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
+                            <i data-lucide="clapperboard" class="w-6 h-6"></i>
+                        </div>
+                        <!-- ข้อความ -->
+                        <div class="flex-1">
+                            <h2 class="text-gray-800 font-medium leading-tight text-sm group-hover:text-pink-700 transition-colors duration-300">
+                                แบบสอบถามบัณฑิต<br>สาขานิเทศศาสตร์บูรณาการ
+                            </h2>
+                            <div class="text-pink-500 text-xs mt-1 font-medium">
+                                คลิกเพื่อทำแบบสอบถาม
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
 
         </div>
         
-        <!-- Footer ขำๆ -->
-        <div class="pb-6 text-center">
+        <!-- Footer -->
+        <div class="pb-6 px-4 text-center space-y-2">
             <p class="text-xs text-gray-400">ขอบคุณบัณฑิตทุกคนที่ให้ความร่วมมือ ขอให้ประสบความสำเร็จในชีวิตครับ ❤️</p>
+            <p class="text-[10px] text-gray-300">จัดทำโดย นายณัฐดนัย ยงไสว (Bank)<br>และคณะกรรมการฝ่ายลงทะเบียน เอกสารและประเมินผล คณะศิลปศาสตร์</p>
         </div>
-        <div class="pb-6 text-center">
-            <p class="text-xs text-gray-400">จัดทำโดย นายณัฐดนัย ยงไสว (Bank)และคณะกรรมการฝ่ายลงทะเบียน เอกสารและประเมินผล คณะศิลปศาสตร์ </p>
-        </div>
+
     </div>
 
     <!-- เรียกใช้ Icon -->
@@ -141,5 +182,3 @@
     </script>
 </body>
 </html>
-
-
