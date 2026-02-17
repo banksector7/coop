@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเช็คชื่อบัณฑิต (เรียงตามลำดับเกียรติ)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Icons (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .cursor-wait { cursor: wait; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex flex-col text-slate-800 overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md z-20 sticky top-0 flex-none border-b border-slate-200">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+                <h1 class="text-2xl font-bold text-indigo-700 flex items-center gap-2">
+                    <i data-lucide="graduation-cap" class="w-8 h-8"></i>
+                    เช็คชื่อบัณฑิต <span class="text-sm font-normal text-gray-500">(เรียงตามเกียรติ)</span>
+                </h1>
+                <button id="btn-pdf" onclick="generatePDF()" class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg active:scale-95 transition-all w-full sm:w-auto justify-center">
+                    <i data-lucide="file-down" class="w-5 h-5"></i>
+                    <span id="btn-text">Save Report PDF</span>
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">ทั้งหมด</p>
+                    <p id="stat-total" class="text-2xl font-bold text-slate-800">0</p>
+                </div>
+                <div class="bg-green-50 p-3 rounded-xl border border-green-200 shadow-sm text-center">
+                    <p class="text-xs text-green-600 font-semibold uppercase tracking-wider">มาแล้ว</p>
+                    <p id="stat-present" class="text-2xl font-bold text-green-700">0</p>
+                </div>
+                <div class="bg-red-50 p-3 rounded-xl border border-red-200 shadow-sm text-center">
+                    <p class="text-xs text-red-600 font-semibold uppercase tracking-wider">ขาด</p>
+                    <p id="stat-absent" class="text-2xl font-bold text-red-700">0</p>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="relative group">
+                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </div>
+                <input type="text" id="search-input" placeholder="ค้นหาชื่อ, รหัส, หรือสาขา..." 
+                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 focus:outline-none shadow-inner transition-all">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-4 scroll-smooth bg-slate-50" id="main-container">
+        <div id="student-list" class="max-w-4xl mx-auto space-y-3 pb-24">
+            <!-- List Items Injected Here -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-gray-400">
+            <div class="bg-gray-100 p-4 rounded-full mb-3">
+                <i data-lucide="search-x" class="w-8 h-8 opacity-50"></i>
+            </div>
+            <p>ไม่พบรายชื่อที่ค้นหา</p>
+        </div>
+    </main>
+
+    <!-- Print Layout (Hidden) -->
+    <div style="position: fixed; top: 0; left: 0; z-index: -50; opacity: 0; pointer-events: none;">
+        <div id="print-area" class="p-10 bg-white text-black w-[800px] font-sans">
+            <div class="text-center mb-8 border-b-2 border-gray-800 pb-4">
+                <h1 class="text-2xl font-bold mb-2">บัญชีรายชื่อผู้สำเร็จการศึกษา (เรียงตามลำดับ)</h1>
+                <p class="text-gray-600 mb-2">ข้อมูล ณ วันที่ <span id="print-date"></span></p>
+                <div class="flex justify-center gap-8 mt-2 text-sm font-medium border p-2 rounded inline-block">
+                   <span>ทั้งหมด: <b id="print-total"></b></span>
+                   <span class="text-green-700">มา: <b id="print-present"></b></span>
+                   <span class="text-red-700">ขาด: <b id="print-absent"></b></span>
+                </div>
+            </div>
+            
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="bg-gray-200 border-b-2 border-gray-400 text-gray-700">
+                    <th class="p-2 border border-gray-300 w-12 text-center">ลำดับ</th>
+                    <th class="p-2 border border-gray-300 w-28">รหัส</th>
+                    <th class="p-2 border border-gray-300">ชื่อ-นามสกุล</th>
+                    <th class="p-2 border border-gray-300 w-24 text-center">เกียรติฯ</th>
+                    <th class="p-2 border border-gray-300 w-20 text-center">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody id="print-table-body">
+                    <!-- Rows -->
+                </tbody>
+            </table>
+            
+            <div class="mt-12 flex justify-between px-16">
+                <div class="text-center">
+                    <div class="border-b border-dotted border-black w-40 h-8 mb-2"></div>
+                    <p class="text-sm">ลงชื่อผู้เช็ค</p>
+                </div>
+                <div class="text-center">
+                    <div class="border-b border-dotted border-black w-40 h-8 mb-2"></div>
+                    <p class="text-sm">นายทะเบียน</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Configuration ---
+        // 1 = อันดับ 1, 2 = อันดับ 2, 0 = ทั่วไป
+        const rawData = [
+            // --- เกียรตินิยมอันดับ 1 ---
+            { id: '6414101305', prefix: 'นางสาว', name: 'เกศราภา', surname: 'เขียวสวัสดิ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101328', prefix: 'นางสาว', name: 'นะแหง่', surname: '-', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101330', prefix: 'นางสาว', name: 'นันทชา', surname: 'แก้วผุย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101351', prefix: 'นางสาว', name: 'สุชานรี', surname: 'หน่อสกุลไกล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101381', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'แย้มสรวล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101387', prefix: 'นางสาว', name: 'ธันยชนก', surname: 'นิปุณะ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101389', prefix: 'นาย', name: 'ธีรภัทร', surname: 'จิตพิสิฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101392', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'กาญสอาด', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101406', prefix: 'นาย', name: 'พิรภพ', surname: 'ศรีวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101431', prefix: 'นางสาว', name: 'อริยา', surname: 'ศรีวะอุไร', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414101437', prefix: 'นางสาว', name: 'หยก', surname: 'หลวงวัง', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
+            { id: '6414102308', prefix: 'นางสาว', name: 'จิณณพัต', surname: 'มาลีแก้ว', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102310', prefix: 'นางสาว', name: 'จิราพร', surname: 'บุญปาน', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102311', prefix: 'นางสาว', name: 'ชนัญชิดา', surname: 'จันทลาด', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102317', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'บุญรอด', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102333', prefix: 'นางสาว', name: 'มัณฑณา', surname: 'คลังประโคน', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102337', prefix: 'นางสาว', name: 'ลลิตพรรณ', surname: 'สอนทรง', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102362', prefix: 'นางสาว', name: 'กมลเนตร', surname: 'กริสประจันทร์', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102373', prefix: 'นาย', name: 'เจตนิพัฒน์', surname: 'จันทร์หนัก', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102382', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'อ่อนศรี', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102406', prefix: 'นางสาว', name: 'บุศยา', surname: 'ยินดีทรัพย์', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102425', prefix: 'นาย', name: 'พิบูลย์', surname: 'วะสัตย์', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102445', prefix: 'นาย', name: 'สรัล', surname: 'แก้วมา', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414102446', prefix: 'นางสาว', name: 'สายธารา', surname: 'ชูแก้ว', major: 'ภาษาอังกฤษ', honor: 1 },
+            { id: '6414103302', prefix: 'Miss', name: 'Yao', surname: 'Fang', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1 },
+            { id: '6414103304', prefix: 'Miss', name: 'Liu', surname: 'Zhuofan', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1 },
+
+            // --- เกียรตินิยมอันดับ 2 ---
+            { id: '6414101310', prefix: 'นางสาว', name: 'จิรานุช', surname: 'ปาวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101327', prefix: 'นาย', name: 'นรากร', surname: 'สุขแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101333', prefix: 'นาย', name: 'ประเสริฐสิริ', surname: 'เลิศประเสริฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101358', prefix: 'นางสาว', name: 'กชกร', surname: 'คำมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101362', prefix: 'นางสาว', name: 'กัณฑมาศ', surname: 'นันต๊ะนา', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101364', prefix: 'นาย', name: 'กิติพจน์', surname: 'ใจด้วง', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101376', prefix: 'นางสาว', name: 'ชุติกาญจน์', surname: 'บุญชุม', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101393', prefix: 'นางสาว', name: 'ใบเฟิร์น', surname: 'พรมตัน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101404', prefix: 'นางสาว', name: 'พิงค์ผกา', surname: 'กันสิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414101416', prefix: 'นางสาว', name: 'วรัญญา', surname: 'ตาวะสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
+            { id: '6414102327', prefix: 'นางสาว', name: 'พรวดี', surname: 'แสนโซ้ง', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102343', prefix: 'นางสาว', name: 'ศศิกาญจน์', surname: 'ศรีนาม', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102345', prefix: 'นางสาว', name: 'สิวลี', surname: 'ยศ', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102347', prefix: 'นางสาว', name: 'สุธิดา', surname: 'สิงห์โตทอง', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102358', prefix: 'นางสาว', name: 'กนกกานต์', surname: 'โคตรทอง', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102377', prefix: 'นางสาว', name: 'ชลลดา', surname: 'เตียวอนันต์', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102383', prefix: 'นางสาว', name: 'ณัฐชยา', surname: 'ศรีวรมย์', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102410', prefix: 'นางสาว', name: 'ปาณิสรา', surname: 'ศิริยาใจ', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102411', prefix: 'นาย', name: 'ปิยพัทธ์', surname: 'ทองทับ', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102412', prefix: 'นาย', name: 'ปิยวัฒน์', surname: 'คำพาลี', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102427', prefix: 'นาย', name: 'พีรณัฐ', surname: 'เหลืองอ่อน', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414102451', prefix: 'นางสาว', name: 'หทัยทิพย์', surname: 'ทองโพธิ์', major: 'ภาษาอังกฤษ', honor: 2 },
+
+            // --- ทั่วไป ---
+            { id: '6214101326', prefix: 'นาย', name: 'ณัฐพงศ์', surname: 'มะโนเสาร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6314101303', prefix: 'นางสาว', name: 'กมลวรรณ', surname: 'ไชยรักษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101301', prefix: 'นางสาว', name: 'กชพร', surname: 'วังมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101309', prefix: 'นางสาว', name: 'คีรีนันท์', surname: 'สาทแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101312', prefix: 'นาย', name: 'เฉลิมเกียรติ', surname: 'วรรณวาลา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101314', prefix: 'นางสาว', name: 'ชลธิชา', surname: 'ทองบุญนุ่ม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101315', prefix: 'นาย', name: 'ชัยวัฒน์', surname: 'นวนจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101317', prefix: 'นาย', name: 'ณภัทร์', surname: 'จีระพันธุ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101320', prefix: 'นาย', name: 'ณัฐพล', surname: 'คำแหลม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101336', prefix: 'นาย', name: 'พันธพงษ์', surname: 'ศรีวิภาดา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101337', prefix: 'นาย', name: 'ภาคภูมิ', surname: 'ชมภู', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101339', prefix: 'นางสาว', name: 'รักษิณา', surname: 'เกิดก่อวงศ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101341', prefix: 'นางสาว', name: 'รินรดา', surname: 'ทองคุณธรรม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101342', prefix: 'นางสาว', name: 'วรธนธรณ์', surname: 'ช่วยจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101347', prefix: 'นาย', name: 'ศิริพงศ์', surname: 'นาคเลี้ยง', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101353', prefix: 'นางสาว', name: 'เสาวลักษณ์', surname: 'พจาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101356', prefix: 'นางสาว', name: 'อาทิตยา', surname: 'ยิ่งตระกูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101360', prefix: 'นาย', name: 'กฤษฎา', surname: 'นิลงาม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101361', prefix: 'นาย', name: 'กฤษฎา', surname: 'ยานะคำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101363', prefix: 'นางสาว', name: 'กิตติณัฐชา', surname: 'นาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101371', prefix: 'นาย', name: 'จิรายุส', surname: 'นุ้ยภิรมย์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101372', prefix: 'นาย', name: 'จีระเดช', surname: 'เพียปลัด', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101373', prefix: 'นาย', name: 'ชวิศ', surname: 'แสนสุวรรณ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101375', prefix: 'นาย', name: 'ชิษณุพงศ์', surname: 'บุญสม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101377', prefix: 'นาย', name: 'ญาณากร', surname: 'กุนามา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101378', prefix: 'นางสาว', name: 'ญานนัน', surname: 'ประทิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101379', prefix: 'นางสาว', name: 'ฐานิรัตน์', surname: 'แก้ววังน้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101380', prefix: 'นาย', name: 'ฐิตินันท์', surname: 'สถานป่า', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101384', prefix: 'นาย', name: 'ณัฐวุฒิ', surname: 'สามฉิมโฉม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101390', prefix: 'นางสาว', name: 'น้ำภัทร', surname: 'เจริญสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101391', prefix: 'นางสาว', name: 'บุษญารัตน์', surname: 'เล็บกระโทก', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101395', prefix: 'นาย', name: 'ปิยพันธ์', surname: 'นัยนานนท์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101398', prefix: 'นางสาว', name: 'พนิดา', surname: 'คงอักษร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101399', prefix: 'นางสาว', name: 'พรธิรา', surname: 'บุตรภักดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101402', prefix: 'นางสาว', name: 'พัชรภา', surname: 'เชียงล้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101408', prefix: 'นาย', name: 'ภัทรกร', surname: 'โบราณ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101413', prefix: 'นางสาว', name: 'ภาวิสา', surname: 'ประไพพิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101414', prefix: 'นางสาว', name: 'รังสิยา', surname: 'นันทสังข์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101415', prefix: 'นางสาว', name: 'วรเวียร์', surname: 'เสือวงษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101426', prefix: 'นางสาว', name: 'สุชานาถ', surname: 'เพชรจิตร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101428', prefix: 'นางสาว', name: 'โสภิตนภา', surname: 'เสยสูงเนิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101433', prefix: 'นางสาว', name: 'เอมิกา', surname: 'บัวลาแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6414101435', prefix: 'นาย', name: 'ณัฐภัทร', surname: 'ศรีสวาท', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
+            { id: '6314102336', prefix: 'นาย', name: 'ณรงค์วัฒน์', surname: 'เพชรสวัสดิ์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102301', prefix: 'นางสาว', name: 'กรรณิการ์', surname: 'กลิ่นขจรไกล', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102305', prefix: 'นางสาว', name: 'กานติมา', surname: 'เขาคำ', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102312', prefix: 'นางสาว', name: 'ชนาธิป', surname: 'อุลูโคตร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102313', prefix: 'นาย', name: 'ชวโรจน์', surname: 'เลิศไกรชัยพร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102318', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'สวยแสง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102323', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'แปลงล้วน', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102325', prefix: 'นางสาว', name: 'ปรียาภรณ์', surname: 'ศรีโยธา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102330', prefix: 'นางสาว', name: 'พิมญาดา', surname: 'ประสิทธิกูล', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102331', prefix: 'นางสาว', name: 'พีรดา', surname: 'เชียงวันนา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102332', prefix: 'ว่าที่ร้อยตรี', name: 'ภราดร', surname: 'ธรรมทรรศนะดี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102335', prefix: 'ว่าที่ร้อยตรี', name: 'รัชชานนท์', surname: 'พาธะขัน', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102339', prefix: 'นางสาว', name: 'วรรณ์วิษา', surname: 'เป็งดอก', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102341', prefix: 'นาย', name: 'วีรพัฒน์', surname: 'รัตพันธ์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102346', prefix: 'นางสาว', name: 'สุชัญญา', surname: 'สกุลจรรยาดี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102348', prefix: 'นางสาว', name: 'สุพัชชา', surname: 'สุวิมลทราทิพย์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102355', prefix: 'นางสาว', name: 'อารยา', surname: 'รัตนชุลี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102356', prefix: 'นางสาว', name: 'เอเลนา', surname: 'ยองโก มาคา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102363', prefix: 'นาย', name: 'กรเพชร', surname: 'หนูขาว', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102365', prefix: 'ว่าที่ร้อยตรีหญิง', name: 'กันตยา', surname: 'ไพรอนุรักษ์คีรี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102368', prefix: 'นางสาว', name: 'จิตรวรรณ', surname: 'สอนสั่ง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102369', prefix: 'นาย', name: 'จิรเดช', surname: 'อรุณปรีย์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102370', prefix: 'นางสาว', name: 'จิราภา', surname: 'ปลองคีรี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102371', prefix: 'นางสาว', name: 'จีรนันท์', surname: 'กันทะเนตร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102374', prefix: 'นาย', name: 'เจษฎากร', surname: 'ช่วยรักษ์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102376', prefix: 'นางสาว', name: 'ชนาภา', surname: 'เดชชัยภูมิ', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102378', prefix: 'นาย', name: 'ชิติพัทธ์', surname: 'หาญนำผลดี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102385', prefix: 'นาย', name: 'ณัฐพล', surname: 'วงศ์ปาน', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102386', prefix: 'นางสาว', name: 'ณิชนันทน์', surname: 'จันทศร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102387', prefix: 'นางสาว', name: 'ณิชา', surname: 'บุญหลง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102389', prefix: 'นาย', name: 'ทิวา', surname: 'ดุมนิล', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102391', prefix: 'นาย', name: 'ธนภัทร', surname: 'หล้าพระบาง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102392', prefix: 'นางสาว', name: 'ธนัชพร', surname: 'สังสีแก้ว', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102393', prefix: 'นาย', name: 'ธนากร', surname: 'ณ ลำพูน', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102397', prefix: 'นางสาว', name: 'ธิติพร', surname: 'แย้มวจี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102398', prefix: 'นาย', name: 'ธิติวุฒิ', surname: 'ยินดี', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102399', prefix: 'นางสาว', name: 'นพมาศ', surname: 'พวงมาลา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102402', prefix: 'นางสาว', name: 'นันท์นภัส', surname: 'ณัฐวิทย์ธัญญา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102403', prefix: 'นาย', name: 'นิธิกร', surname: 'คอง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102404', prefix: 'นาย', name: 'นิรวิทย์', surname: 'จักรแตร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102413', prefix: 'นาย', name: 'ปิยะ', surname: 'ขันบันลังค์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102415', prefix: 'นางสาว', name: 'ฝ้าย', surname: '-', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102418', prefix: 'นางสาว', name: 'พชรภรณ์', surname: 'สุภาคมล', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102419', prefix: 'นางสาว', name: 'พรพรรณ', surname: 'ภูมิเรศสุนทร', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102422', prefix: 'นางสาว', name: 'พิชญาภา', surname: 'จิวเดช', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102423', prefix: 'นางสาว', name: 'พิชิตา', surname: 'สนใจ', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102431', prefix: 'นางสาว', name: 'มาริตา', surname: 'เกตบุญ', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102432', prefix: 'นางสาว', name: 'เยาวภา', surname: 'แซ่เฮ้อ', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102437', prefix: 'นางสาว', name: 'วาสนา', surname: 'ใกล้จันอัด', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102438', prefix: 'นางสาว', name: 'วิลาวัณย์', surname: 'อินผ่อง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102441', prefix: 'นางสาว', name: 'ศิลป์สุภา', surname: 'เล็กส่วย', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102449', prefix: 'นางสาว', name: 'สุธีรา', surname: 'ศรีสุนา', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102450', prefix: 'นางสาว', name: 'สุภัทรา', surname: 'เนาว์ประดิษฐ์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102453', prefix: 'นางสาว', name: 'อภิสรา', surname: 'ทินนัง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102454', prefix: 'นาย', name: 'อรรถกร', surname: 'อุตรรักษ์', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102455', prefix: 'นางสาว', name: 'อรวรรณ', surname: 'จันทร์งาม', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6414102458', prefix: 'นางสาว', name: 'อุไรวรรณ', surname: 'โพธิ์ทอง', major: 'ภาษาอังกฤษ', honor: 0 },
+        ];
+
+        // --- State Management ---
+        let students = rawData.map(s => ({ ...s, isPresent: false }));
+        let searchTerm = '';
+
+        // --- Selectors ---
+        const listContainer = document.getElementById('student-list');
+        const emptyState = document.getElementById('empty-state');
+        const searchInput = document.getElementById('search-input');
+        const statTotal = document.getElementById('stat-total');
+        const statPresent = document.getElementById('stat-present');
+        const statAbsent = document.getElementById('stat-absent');
+        const printTableBody = document.getElementById('print-table-body');
+        const printDate = document.getElementById('print-date');
+        const printStats = {
+            total: document.getElementById('print-total'),
+            present: document.getElementById('print-present'),
+            absent: document.getElementById('print-absent')
+        };
+
+        // --- Core Functions ---
+
+        function renderList() {
+            // Filter
+            const filtered = students.filter(s => 
+                s.name.includes(searchTerm) || 
+                s.surname.includes(searchTerm) || 
+                s.id.includes(searchTerm) ||
+                s.major.includes(searchTerm)
+            );
+
+            // Clear
+            listContainer.innerHTML = '';
+
+            // Handle Empty
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                let html = '';
+                filtered.forEach(student => {
+                    // Check Styles
+                    const baseCard = student.isPresent 
+                        ? 'bg-green-50 border-green-400 shadow-md transform scale-[1.01]' 
+                        : 'bg-white border-transparent hover:border-indigo-200 shadow-sm hover:shadow-md';
+                    
+                    const nameColor = student.isPresent ? 'text-green-800' : 'text-slate-800';
+                    
+                    const btnStyle = student.isPresent 
+                        ? 'bg-green-500 text-white shadow-lg ring-2 ring-green-200' 
+                        : 'bg-slate-100 text-slate-300 hover:bg-slate-200';
+
+                    // Honor Badge
+                    let honorBadge = '';
+                    if (student.honor === 1) {
+                        honorBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                            <i data-lucide="medal" class="w-3 h-3"></i> อันดับ 1
+                        </span>`;
+                    } else if (student.honor === 2) {
+                        honorBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-slate-600 border border-slate-200">
+                            <i data-lucide="award" class="w-3 h-3"></i> อันดับ 2
+                        </span>`;
+                    }
+
+                    // ID Warning for new students
+                    const idDisplay = student.id.startsWith('xxxx') 
+                        ? `<span class="text-red-500 font-bold bg-red-50 px-1 rounded">รอรหัส</span>` 
+                        : student.id;
+
+                    html += `
+                        <div onclick="toggleAttendance('${student.id}')" 
+                            class="flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 select-none group ${baseCard}">
+                            
+                            <div class="flex-1 min-w-0 pr-4">
+                                <div class="flex items-center flex-wrap gap-2 mb-1.5">
+                                    <span class="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200">
+                                        ${idDisplay}
+                                    </span>
+                                    ${honorBadge}
+                                    <span class="text-xs text-slate-400 truncate hidden sm:inline">
+                                        ${student.major}
+                                    </span>
+                                </div>
+                                <h3 class="font-bold text-lg ${nameColor} flex items-center gap-2">
+                                    ${student.prefix} ${student.name} ${student.surname}
+                                </h3>
+                                <p class="text-xs text-slate-400 sm:hidden mt-1">${student.major}</p>
+                            </div>
+
+                            <div class="flex-none">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${btnStyle}">
+                                    ${student.isPresent 
+                                        ? '<i data-lucide="check" class="w-7 h-7"></i>' 
+                                        : '<div class="w-4 h-4 rounded-full bg-slate-300 group-hover:bg-slate-400 transition-colors"></div>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            }
+
+            lucide.createIcons();
+            updateStats();
+        }
+
+        function toggleAttendance(id) {
+            const student = students.find(s => s.id === id);
+            if (student) {
+                student.isPresent = !student.isPresent;
+                renderList();
+            }
+        }
+
+        function updateStats() {
+            const total = students.length;
+            const present = students.filter(s => s.isPresent).length;
+            const absent = total - present;
+
+            statTotal.innerText = total;
+            statPresent.innerText = present;
+            statAbsent.innerText = absent;
+        }
+
+        // --- PDF Logic ---
+        function generatePDF() {
+            const btn = document.getElementById('btn-pdf');
+            const btnText = document.getElementById('btn-text');
+            
+            // Loading State
+            btn.classList.add('bg-slate-400', 'cursor-wait');
+            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            btnText.innerText = 'กำลังสร้าง PDF...';
+            
+            // Set Print Data
+            const present = students.filter(s => s.isPresent).length;
+            printDate.innerText = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            printStats.total.innerText = students.length;
+            printStats.present.innerText = present;
+            printStats.absent.innerText = students.length - present;
+
+            // Generate Table Rows
+            let tableHtml = '';
+            let currentGroup = -1; // To separate sections visually if needed
+
+            students.forEach((s, index) => {
+                const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                
+                // Status Text
+                const statusHtml = s.isPresent 
+                    ? '<span class="text-green-600 font-bold">✓ มา</span>' 
+                    : '<span class="text-red-300">-</span>';
+
+                // Honor Text
+                let honorText = '-';
+                if (s.honor === 1) honorText = 'อันดับ 1';
+                else if (s.honor === 2) honorText = 'อันดับ 2';
+
+                // Check for generic ID
+                const displayId = s.id.startsWith('xxxx') ? '-' : s.id;
+
+                tableHtml += `
+                    <tr class="border-b border-gray-200 ${rowClass}">
+                        <td class="p-2 border-r border-gray-300 text-center text-gray-500 text-xs">${index + 1}</td>
+                        <td class="p-2 border-r border-gray-300 font-mono text-xs">${displayId}</td>
+                        <td class="p-2 border-r border-gray-300 font-medium">
+                            ${s.prefix}${s.name} ${s.surname}
+                            <div class="text-[10px] text-gray-500">${s.major}</div>
+                        </td>
+                        <td class="p-2 border-r border-gray-300 text-center text-xs text-gray-600">${honorText}</td>
+                        <td class="p-2 text-center">${statusHtml}</td>
+                    </tr>
+                `;
+            });
+            printTableBody.innerHTML = tableHtml;
+
+            // PDF Options
+            const element = document.getElementById('print-area');
+            const opt = {
+                margin: 0.4,
+                filename: 'รายชื่อบัณฑิต_เรียงตามลำดับ.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Convert
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Reset Button
+                btn.classList.remove('bg-slate-400', 'cursor-wait');
+                btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                btnText.innerText = 'Save Report PDF';
+            });
+        }
+
+        // --- Init ---
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            renderList();
+        });
+
+        renderList();
+    </script>
+</body>
+</html>
