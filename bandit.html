@@ -53,7 +53,7 @@
                 <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors">
                     <i data-lucide="search" class="w-5 h-5"></i>
                 </div>
-                <input type="text" id="search-input" placeholder="ค้นหาชื่อ, รหัส, หรือสาขา..." 
+                <input type="text" id="search-input" placeholder="ค้นหาชื่อ, รหัส, ที่นั่ง..." 
                     class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 focus:outline-none shadow-inner transition-all">
             </div>
         </div>
@@ -91,7 +91,8 @@
                 <thead>
                   <tr class="bg-gray-200 border-b-2 border-gray-400 text-gray-700">
                     <th class="p-2 border border-gray-300 w-12 text-center">ลำดับ</th>
-                    <th class="p-2 border border-gray-300 w-28">รหัส</th>
+                    <th class="p-2 border border-gray-300 w-16 text-center">ที่นั่ง</th>
+                    <th class="p-2 border border-gray-300 w-24">รหัส</th>
                     <th class="p-2 border border-gray-300">ชื่อ-นามสกุล</th>
                     <th class="p-2 border border-gray-300 w-24 text-center">เกียรติฯ</th>
                     <th class="p-2 border border-gray-300 w-20 text-center">สถานะ</th>
@@ -118,160 +119,161 @@
     <script>
         // --- Data Configuration ---
         // 1 = อันดับ 1, 2 = อันดับ 2, 0 = ทั่วไป
+        // Added 'seat' property based on user input
         const rawData = [
             // --- เกียรตินิยมอันดับ 1 ---
-            { id: '6414101305', prefix: 'นางสาว', name: 'เกศราภา', surname: 'เขียวสวัสดิ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101328', prefix: 'นางสาว', name: 'นะแหง่', surname: '-', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101330', prefix: 'นางสาว', name: 'นันทชา', surname: 'แก้วผุย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101351', prefix: 'นางสาว', name: 'สุชานรี', surname: 'หน่อสกุลไกล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101381', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'แย้มสรวล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101387', prefix: 'นางสาว', name: 'ธันยชนก', surname: 'นิปุณะ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101389', prefix: 'นาย', name: 'ธีรภัทร', surname: 'จิตพิสิฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101392', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'กาญสอาด', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101406', prefix: 'นาย', name: 'พิรภพ', surname: 'ศรีวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101431', prefix: 'นางสาว', name: 'อริยา', surname: 'ศรีวะอุไร', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414101437', prefix: 'นางสาว', name: 'หยก', surname: 'หลวงวัง', major: 'นิเทศศาสตร์บูรณาการ', honor: 1 },
-            { id: '6414102308', prefix: 'นางสาว', name: 'จิณณพัต', surname: 'มาลีแก้ว', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102310', prefix: 'นางสาว', name: 'จิราพร', surname: 'บุญปาน', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102311', prefix: 'นางสาว', name: 'ชนัญชิดา', surname: 'จันทลาด', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102317', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'บุญรอด', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102333', prefix: 'นางสาว', name: 'มัณฑณา', surname: 'คลังประโคน', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102337', prefix: 'นางสาว', name: 'ลลิตพรรณ', surname: 'สอนทรง', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102362', prefix: 'นางสาว', name: 'กมลเนตร', surname: 'กริสประจันทร์', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102373', prefix: 'นาย', name: 'เจตนิพัฒน์', surname: 'จันทร์หนัก', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102382', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'อ่อนศรี', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102406', prefix: 'นางสาว', name: 'บุศยา', surname: 'ยินดีทรัพย์', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102425', prefix: 'นาย', name: 'พิบูลย์', surname: 'วะสัตย์', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102445', prefix: 'นาย', name: 'สรัล', surname: 'แก้วมา', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414102446', prefix: 'นางสาว', name: 'สายธารา', surname: 'ชูแก้ว', major: 'ภาษาอังกฤษ', honor: 1 },
-            { id: '6414103302', prefix: 'Miss', name: 'Yao', surname: 'Fang', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1 },
-            { id: '6414103304', prefix: 'Miss', name: 'Liu', surname: 'Zhuofan', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1 },
+            { id: '6414101305', prefix: 'นางสาว', name: 'เกศราภา', surname: 'เขียวสวัสดิ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E6' },
+            { id: '6414101328', prefix: 'นางสาว', name: 'นะแหง่', surname: '-', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E7' },
+            { id: '6414101330', prefix: 'นางสาว', name: 'นันทชา', surname: 'แก้วผุย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E8' },
+            { id: '6414101351', prefix: 'นางสาว', name: 'สุชานรี', surname: 'หน่อสกุลไกล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E9' },
+            { id: '6414101381', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'แย้มสรวล', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E10' },
+            { id: '6414101387', prefix: 'นางสาว', name: 'ธันยชนก', surname: 'นิปุณะ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E11' },
+            { id: '6414101389', prefix: 'นาย', name: 'ธีรภัทร', surname: 'จิตพิสิฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E12' },
+            { id: '6414101392', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'กาญสอาด', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E13' },
+            { id: '6414101406', prefix: 'นาย', name: 'พิรภพ', surname: 'ศรีวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E14' },
+            { id: '6414101431', prefix: 'นางสาว', name: 'อริยา', surname: 'ศรีวะอุไร', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E15' },
+            { id: '6414101437', prefix: 'นางสาว', name: 'หยก', surname: 'หลวงวัง', major: 'นิเทศศาสตร์บูรณาการ', honor: 1, seat: 'E16' },
+            { id: '6414102308', prefix: 'นางสาว', name: 'จิณณพัต', surname: 'มาลีแก้ว', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E17' },
+            { id: '6414102310', prefix: 'นางสาว', name: 'จิราพร', surname: 'บุญปาน', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E18' },
+            { id: '6414102311', prefix: 'นางสาว', name: 'ชนัญชิดา', surname: 'จันทลาด', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E19' },
+            { id: '6414102317', prefix: 'นางสาว', name: 'ณัฏฐณิชา', surname: 'บุญรอด', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E20' },
+            { id: '6414102333', prefix: 'นางสาว', name: 'มัณฑณา', surname: 'คลังประโคน', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E21' },
+            { id: '6414102337', prefix: 'นางสาว', name: 'ลลิตพรรณ', surname: 'สอนทรง', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E22' },
+            { id: '6414102362', prefix: 'นางสาว', name: 'กมลเนตร', surname: 'กริสประจันทร์', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E23' },
+            { id: '6414102373', prefix: 'นาย', name: 'เจตนิพัฒน์', surname: 'จันทร์หนัก', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E24' },
+            { id: '6414102382', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'อ่อนศรี', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E25' },
+            { id: '6414102406', prefix: 'นางสาว', name: 'บุศยา', surname: 'ยินดีทรัพย์', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E26' },
+            { id: '6414102425', prefix: 'นาย', name: 'พิบูลย์', surname: 'วะสัตย์', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E27' },
+            { id: '6414102445', prefix: 'นาย', name: 'สรัล', surname: 'แก้วมา', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E28' },
+            { id: '6414102446', prefix: 'นางสาว', name: 'สายธารา', surname: 'ชูแก้ว', major: 'ภาษาอังกฤษ', honor: 1, seat: 'E29' },
+            { id: '6414103302', prefix: 'Miss', name: 'Yao', surname: 'Fang', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1, seat: 'E30' },
+            { id: '6414103304', prefix: 'Miss', name: 'Liu', surname: 'Zhuofan', major: 'ภาษาไทยสำหรับชาวต่างประเทศ', honor: 1, seat: 'E31' },
 
             // --- เกียรตินิยมอันดับ 2 ---
-            { id: '6414101310', prefix: 'นางสาว', name: 'จิรานุช', surname: 'ปาวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101327', prefix: 'นาย', name: 'นรากร', surname: 'สุขแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101333', prefix: 'นาย', name: 'ประเสริฐสิริ', surname: 'เลิศประเสริฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101358', prefix: 'นางสาว', name: 'กชกร', surname: 'คำมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101362', prefix: 'นางสาว', name: 'กัณฑมาศ', surname: 'นันต๊ะนา', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101364', prefix: 'นาย', name: 'กิติพจน์', surname: 'ใจด้วง', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101376', prefix: 'นางสาว', name: 'ชุติกาญจน์', surname: 'บุญชุม', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101393', prefix: 'นางสาว', name: 'ใบเฟิร์น', surname: 'พรมตัน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101404', prefix: 'นางสาว', name: 'พิงค์ผกา', surname: 'กันสิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414101416', prefix: 'นางสาว', name: 'วรัญญา', surname: 'ตาวะสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 2 },
-            { id: '6414102327', prefix: 'นางสาว', name: 'พรวดี', surname: 'แสนโซ้ง', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102343', prefix: 'นางสาว', name: 'ศศิกาญจน์', surname: 'ศรีนาม', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102345', prefix: 'นางสาว', name: 'สิวลี', surname: 'ยศ', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102347', prefix: 'นางสาว', name: 'สุธิดา', surname: 'สิงห์โตทอง', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102358', prefix: 'นางสาว', name: 'กนกกานต์', surname: 'โคตรทอง', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102377', prefix: 'นางสาว', name: 'ชลลดา', surname: 'เตียวอนันต์', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102383', prefix: 'นางสาว', name: 'ณัฐชยา', surname: 'ศรีวรมย์', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102410', prefix: 'นางสาว', name: 'ปาณิสรา', surname: 'ศิริยาใจ', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102411', prefix: 'นาย', name: 'ปิยพัทธ์', surname: 'ทองทับ', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102412', prefix: 'นาย', name: 'ปิยวัฒน์', surname: 'คำพาลี', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102427', prefix: 'นาย', name: 'พีรณัฐ', surname: 'เหลืองอ่อน', major: 'ภาษาอังกฤษ', honor: 2 },
-            { id: '6414102451', prefix: 'นางสาว', name: 'หทัยทิพย์', surname: 'ทองโพธิ์', major: 'ภาษาอังกฤษ', honor: 2 },
+            { id: '6414101310', prefix: 'นางสาว', name: 'จิรานุช', surname: 'ปาวิชัย', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E32' },
+            { id: '6414101327', prefix: 'นาย', name: 'นรากร', surname: 'สุขแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E33' },
+            { id: '6414101333', prefix: 'นาย', name: 'ประเสริฐสิริ', surname: 'เลิศประเสริฐ', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E34' },
+            { id: '6414101358', prefix: 'นางสาว', name: 'กชกร', surname: 'คำมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E35' },
+            { id: '6414101362', prefix: 'นางสาว', name: 'กัณฑมาศ', surname: 'นันต๊ะนา', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E36' },
+            { id: '6414101364', prefix: 'นาย', name: 'กิติพจน์', surname: 'ใจด้วง', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E37' },
+            { id: '6414101376', prefix: 'นางสาว', name: 'ชุติกาญจน์', surname: 'บุญชุม', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E38' },
+            { id: '6414101393', prefix: 'นางสาว', name: 'ใบเฟิร์น', surname: 'พรมตัน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E39' },
+            { id: '6414101404', prefix: 'นางสาว', name: 'พิงค์ผกา', surname: 'กันสิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E40' },
+            { id: '6414101416', prefix: 'นางสาว', name: 'วรัญญา', surname: 'ตาวะสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 2, seat: 'E41' },
+            { id: '6414102327', prefix: 'นางสาว', name: 'พรวดี', surname: 'แสนโซ้ง', major: 'ภาษาอังกฤษ', honor: 2, seat: 'E42' },
+            { id: '6414102343', prefix: 'นางสาว', name: 'ศศิกาญจน์', surname: 'ศรีนาม', major: 'ภาษาอังกฤษ', honor: 2, seat: 'E43' },
+            { id: '6414102345', prefix: 'นางสาว', name: 'สิวลี', surname: 'ยศ', major: 'ภาษาอังกฤษ', honor: 2, seat: 'E44' },
+            { id: '6414102347', prefix: 'นางสาว', name: 'สุธิดา', surname: 'สิงห์โตทอง', major: 'ภาษาอังกฤษ', honor: 2, seat: 'E45' },
+            { id: '6414102358', prefix: 'นางสาว', name: 'กนกกานต์', surname: 'โคตรทอง', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F1' },
+            { id: '6414102377', prefix: 'นางสาว', name: 'ชลลดา', surname: 'เตียวอนันต์', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F2' },
+            { id: '6414102383', prefix: 'นางสาว', name: 'ณัฐชยา', surname: 'ศรีวรมย์', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F3' },
+            { id: '6414102410', prefix: 'นางสาว', name: 'ปาณิสรา', surname: 'ศิริยาใจ', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F4' },
+            { id: '6414102411', prefix: 'นาย', name: 'ปิยพัทธ์', surname: 'ทองทับ', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F5' },
+            { id: '6414102412', prefix: 'นาย', name: 'ปิยวัฒน์', surname: 'คำพาลี', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F6' },
+            { id: '6414102427', prefix: 'นาย', name: 'พีรณัฐ', surname: 'เหลืองอ่อน', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F7' },
+            { id: '6414102451', prefix: 'นางสาว', name: 'หทัยทิพย์', surname: 'ทองโพธิ์', major: 'ภาษาอังกฤษ', honor: 2, seat: 'F8' },
 
             // --- ทั่วไป ---
-            { id: '6214101326', prefix: 'นาย', name: 'ณัฐพงศ์', surname: 'มะโนเสาร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6314101303', prefix: 'นางสาว', name: 'กมลวรรณ', surname: 'ไชยรักษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101301', prefix: 'นางสาว', name: 'กชพร', surname: 'วังมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101309', prefix: 'นางสาว', name: 'คีรีนันท์', surname: 'สาทแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101312', prefix: 'นาย', name: 'เฉลิมเกียรติ', surname: 'วรรณวาลา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101314', prefix: 'นางสาว', name: 'ชลธิชา', surname: 'ทองบุญนุ่ม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101315', prefix: 'นาย', name: 'ชัยวัฒน์', surname: 'นวนจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101317', prefix: 'นาย', name: 'ณภัทร์', surname: 'จีระพันธุ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101320', prefix: 'นาย', name: 'ณัฐพล', surname: 'คำแหลม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101336', prefix: 'นาย', name: 'พันธพงษ์', surname: 'ศรีวิภาดา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101337', prefix: 'นาย', name: 'ภาคภูมิ', surname: 'ชมภู', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101339', prefix: 'นางสาว', name: 'รักษิณา', surname: 'เกิดก่อวงศ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101341', prefix: 'นางสาว', name: 'รินรดา', surname: 'ทองคุณธรรม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101342', prefix: 'นางสาว', name: 'วรธนธรณ์', surname: 'ช่วยจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101347', prefix: 'นาย', name: 'ศิริพงศ์', surname: 'นาคเลี้ยง', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101353', prefix: 'นางสาว', name: 'เสาวลักษณ์', surname: 'พจาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101356', prefix: 'นางสาว', name: 'อาทิตยา', surname: 'ยิ่งตระกูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101360', prefix: 'นาย', name: 'กฤษฎา', surname: 'นิลงาม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101361', prefix: 'นาย', name: 'กฤษฎา', surname: 'ยานะคำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101363', prefix: 'นางสาว', name: 'กิตติณัฐชา', surname: 'นาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101371', prefix: 'นาย', name: 'จิรายุส', surname: 'นุ้ยภิรมย์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101372', prefix: 'นาย', name: 'จีระเดช', surname: 'เพียปลัด', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101373', prefix: 'นาย', name: 'ชวิศ', surname: 'แสนสุวรรณ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101375', prefix: 'นาย', name: 'ชิษณุพงศ์', surname: 'บุญสม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101377', prefix: 'นาย', name: 'ญาณากร', surname: 'กุนามา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101378', prefix: 'นางสาว', name: 'ญานนัน', surname: 'ประทิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101379', prefix: 'นางสาว', name: 'ฐานิรัตน์', surname: 'แก้ววังน้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101380', prefix: 'นาย', name: 'ฐิตินันท์', surname: 'สถานป่า', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101384', prefix: 'นาย', name: 'ณัฐวุฒิ', surname: 'สามฉิมโฉม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101390', prefix: 'นางสาว', name: 'น้ำภัทร', surname: 'เจริญสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101391', prefix: 'นางสาว', name: 'บุษญารัตน์', surname: 'เล็บกระโทก', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101395', prefix: 'นาย', name: 'ปิยพันธ์', surname: 'นัยนานนท์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101398', prefix: 'นางสาว', name: 'พนิดา', surname: 'คงอักษร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101399', prefix: 'นางสาว', name: 'พรธิรา', surname: 'บุตรภักดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101402', prefix: 'นางสาว', name: 'พัชรภา', surname: 'เชียงล้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101408', prefix: 'นาย', name: 'ภัทรกร', surname: 'โบราณ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101413', prefix: 'นางสาว', name: 'ภาวิสา', surname: 'ประไพพิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101414', prefix: 'นางสาว', name: 'รังสิยา', surname: 'นันทสังข์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101415', prefix: 'นางสาว', name: 'วรเวียร์', surname: 'เสือวงษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101426', prefix: 'นางสาว', name: 'สุชานาถ', surname: 'เพชรจิตร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101428', prefix: 'นางสาว', name: 'โสภิตนภา', surname: 'เสยสูงเนิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101433', prefix: 'นางสาว', name: 'เอมิกา', surname: 'บัวลาแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6414101435', prefix: 'นาย', name: 'ณัฐภัทร', surname: 'ศรีสวาท', major: 'นิเทศศาสตร์บูรณาการ', honor: 0 },
-            { id: '6314102336', prefix: 'นาย', name: 'ณรงค์วัฒน์', surname: 'เพชรสวัสดิ์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102301', prefix: 'นางสาว', name: 'กรรณิการ์', surname: 'กลิ่นขจรไกล', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102305', prefix: 'นางสาว', name: 'กานติมา', surname: 'เขาคำ', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102312', prefix: 'นางสาว', name: 'ชนาธิป', surname: 'อุลูโคตร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102313', prefix: 'นาย', name: 'ชวโรจน์', surname: 'เลิศไกรชัยพร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102318', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'สวยแสง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102323', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'แปลงล้วน', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102325', prefix: 'นางสาว', name: 'ปรียาภรณ์', surname: 'ศรีโยธา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102330', prefix: 'นางสาว', name: 'พิมญาดา', surname: 'ประสิทธิกูล', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102331', prefix: 'นางสาว', name: 'พีรดา', surname: 'เชียงวันนา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102332', prefix: 'ว่าที่ร้อยตรี', name: 'ภราดร', surname: 'ธรรมทรรศนะดี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102335', prefix: 'ว่าที่ร้อยตรี', name: 'รัชชานนท์', surname: 'พาธะขัน', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102339', prefix: 'นางสาว', name: 'วรรณ์วิษา', surname: 'เป็งดอก', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102341', prefix: 'นาย', name: 'วีรพัฒน์', surname: 'รัตพันธ์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102346', prefix: 'นางสาว', name: 'สุชัญญา', surname: 'สกุลจรรยาดี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102348', prefix: 'นางสาว', name: 'สุพัชชา', surname: 'สุวิมลทราทิพย์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102355', prefix: 'นางสาว', name: 'อารยา', surname: 'รัตนชุลี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102356', prefix: 'นางสาว', name: 'เอเลนา', surname: 'ยองโก มาคา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102363', prefix: 'นาย', name: 'กรเพชร', surname: 'หนูขาว', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102365', prefix: 'ว่าที่ร้อยตรีหญิง', name: 'กันตยา', surname: 'ไพรอนุรักษ์คีรี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102368', prefix: 'นางสาว', name: 'จิตรวรรณ', surname: 'สอนสั่ง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102369', prefix: 'นาย', name: 'จิรเดช', surname: 'อรุณปรีย์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102370', prefix: 'นางสาว', name: 'จิราภา', surname: 'ปลองคีรี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102371', prefix: 'นางสาว', name: 'จีรนันท์', surname: 'กันทะเนตร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102374', prefix: 'นาย', name: 'เจษฎากร', surname: 'ช่วยรักษ์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102376', prefix: 'นางสาว', name: 'ชนาภา', surname: 'เดชชัยภูมิ', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102378', prefix: 'นาย', name: 'ชิติพัทธ์', surname: 'หาญนำผลดี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102385', prefix: 'นาย', name: 'ณัฐพล', surname: 'วงศ์ปาน', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102386', prefix: 'นางสาว', name: 'ณิชนันทน์', surname: 'จันทศร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102387', prefix: 'นางสาว', name: 'ณิชา', surname: 'บุญหลง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102389', prefix: 'นาย', name: 'ทิวา', surname: 'ดุมนิล', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102391', prefix: 'นาย', name: 'ธนภัทร', surname: 'หล้าพระบาง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102392', prefix: 'นางสาว', name: 'ธนัชพร', surname: 'สังสีแก้ว', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102393', prefix: 'นาย', name: 'ธนากร', surname: 'ณ ลำพูน', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102397', prefix: 'นางสาว', name: 'ธิติพร', surname: 'แย้มวจี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102398', prefix: 'นาย', name: 'ธิติวุฒิ', surname: 'ยินดี', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102399', prefix: 'นางสาว', name: 'นพมาศ', surname: 'พวงมาลา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102402', prefix: 'นางสาว', name: 'นันท์นภัส', surname: 'ณัฐวิทย์ธัญญา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102403', prefix: 'นาย', name: 'นิธิกร', surname: 'คอง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102404', prefix: 'นาย', name: 'นิรวิทย์', surname: 'จักรแตร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102413', prefix: 'นาย', name: 'ปิยะ', surname: 'ขันบันลังค์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102415', prefix: 'นางสาว', name: 'ฝ้าย', surname: '-', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102418', prefix: 'นางสาว', name: 'พชรภรณ์', surname: 'สุภาคมล', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102419', prefix: 'นางสาว', name: 'พรพรรณ', surname: 'ภูมิเรศสุนทร', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102422', prefix: 'นางสาว', name: 'พิชญาภา', surname: 'จิวเดช', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102423', prefix: 'นางสาว', name: 'พิชิตา', surname: 'สนใจ', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102431', prefix: 'นางสาว', name: 'มาริตา', surname: 'เกตบุญ', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102432', prefix: 'นางสาว', name: 'เยาวภา', surname: 'แซ่เฮ้อ', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102437', prefix: 'นางสาว', name: 'วาสนา', surname: 'ใกล้จันอัด', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102438', prefix: 'นางสาว', name: 'วิลาวัณย์', surname: 'อินผ่อง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102441', prefix: 'นางสาว', name: 'ศิลป์สุภา', surname: 'เล็กส่วย', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102449', prefix: 'นางสาว', name: 'สุธีรา', surname: 'ศรีสุนา', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102450', prefix: 'นางสาว', name: 'สุภัทรา', surname: 'เนาว์ประดิษฐ์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102453', prefix: 'นางสาว', name: 'อภิสรา', surname: 'ทินนัง', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102454', prefix: 'นาย', name: 'อรรถกร', surname: 'อุตรรักษ์', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102455', prefix: 'นางสาว', name: 'อรวรรณ', surname: 'จันทร์งาม', major: 'ภาษาอังกฤษ', honor: 0 },
-            { id: '6414102458', prefix: 'นางสาว', name: 'อุไรวรรณ', surname: 'โพธิ์ทอง', major: 'ภาษาอังกฤษ', honor: 0 },
+            { id: '6214101326', prefix: 'นาย', name: 'ณัฐพงศ์', surname: 'มะโนเสาร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F9' },
+            { id: '6314101303', prefix: 'นางสาว', name: 'กมลวรรณ', surname: 'ไชยรักษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F10' },
+            { id: '6414101301', prefix: 'นางสาว', name: 'กชพร', surname: 'วังมูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F11' },
+            { id: '6414101309', prefix: 'นางสาว', name: 'คีรีนันท์', surname: 'สาทแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F12' },
+            { id: '6414101312', prefix: 'นาย', name: 'เฉลิมเกียรติ', surname: 'วรรณวาลา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F13' },
+            { id: '6414101314', prefix: 'นางสาว', name: 'ชลธิชา', surname: 'ทองบุญนุ่ม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F14' },
+            { id: '6414101315', prefix: 'นาย', name: 'ชัยวัฒน์', surname: 'นวนจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F15' },
+            { id: '6414101317', prefix: 'นาย', name: 'ณภัทร์', surname: 'จีระพันธุ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F16' },
+            { id: '6414101320', prefix: 'นาย', name: 'ณัฐพล', surname: 'คำแหลม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F17' },
+            { id: '6414101336', prefix: 'นาย', name: 'พันธพงษ์', surname: 'ศรีวิภาดา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F18' },
+            { id: '6414101337', prefix: 'นาย', name: 'ภาคภูมิ', surname: 'ชมภู', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F19' },
+            { id: '6414101339', prefix: 'นางสาว', name: 'รักษิณา', surname: 'เกิดก่อวงศ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F20' },
+            { id: '6414101341', prefix: 'นางสาว', name: 'รินรดา', surname: 'ทองคุณธรรม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F21' },
+            { id: '6414101342', prefix: 'นางสาว', name: 'วรธนธรณ์', surname: 'ช่วยจันทร์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F22' },
+            { id: '6414101347', prefix: 'นาย', name: 'ศิริพงศ์', surname: 'นาคเลี้ยง', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F23' },
+            { id: '6414101353', prefix: 'นางสาว', name: 'เสาวลักษณ์', surname: 'พจาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F24' },
+            { id: '6414101356', prefix: 'นางสาว', name: 'อาทิตยา', surname: 'ยิ่งตระกูล', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F25' },
+            { id: '6414101360', prefix: 'นาย', name: 'กฤษฎา', surname: 'นิลงาม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F26' },
+            { id: '6414101361', prefix: 'นาย', name: 'กฤษฎา', surname: 'ยานะคำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F27' },
+            { id: '6414101363', prefix: 'นางสาว', name: 'กิตติณัฐชา', surname: 'นาดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F28' },
+            { id: '6414101371', prefix: 'นาย', name: 'จิรายุส', surname: 'นุ้ยภิรมย์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F29' },
+            { id: '6414101372', prefix: 'นาย', name: 'จีระเดช', surname: 'เพียปลัด', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F30' },
+            { id: '6414101373', prefix: 'นาย', name: 'ชวิศ', surname: 'แสนสุวรรณ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F31' },
+            { id: '6414101375', prefix: 'นาย', name: 'ชิษณุพงศ์', surname: 'บุญสม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F32' },
+            { id: '6414101377', prefix: 'นาย', name: 'ญาณากร', surname: 'กุนามา', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F33' },
+            { id: '6414101378', prefix: 'นางสาว', name: 'ญานนัน', surname: 'ประทิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F34' },
+            { id: '6414101379', prefix: 'นางสาว', name: 'ฐานิรัตน์', surname: 'แก้ววังน้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F35' },
+            { id: '6414101380', prefix: 'นาย', name: 'ฐิตินันท์', surname: 'สถานป่า', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F36' },
+            { id: '6414101384', prefix: 'นาย', name: 'ณัฐวุฒิ', surname: 'สามฉิมโฉม', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F37' },
+            { id: '6414101390', prefix: 'นางสาว', name: 'น้ำภัทร', surname: 'เจริญสุข', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F38' },
+            { id: '6414101391', prefix: 'นางสาว', name: 'บุษญารัตน์', surname: 'เล็บกระโทก', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F39' },
+            { id: '6414101395', prefix: 'นาย', name: 'ปิยพันธ์', surname: 'นัยนานนท์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F40' },
+            { id: '6414101398', prefix: 'นางสาว', name: 'พนิดา', surname: 'คงอักษร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F41' },
+            { id: '6414101399', prefix: 'นางสาว', name: 'พรธิรา', surname: 'บุตรภักดี', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F42' },
+            { id: '6414101402', prefix: 'นางสาว', name: 'พัชรภา', surname: 'เชียงล้ำ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F43' },
+            { id: '6414101408', prefix: 'นาย', name: 'ภัทรกร', surname: 'โบราณ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F44' },
+            { id: '6414101413', prefix: 'นางสาว', name: 'ภาวิสา', surname: 'ประไพพิศ', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'F45' },
+            { id: '6414101414', prefix: 'นางสาว', name: 'รังสิยา', surname: 'นันทสังข์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G1' },
+            { id: '6414101415', prefix: 'นางสาว', name: 'วรเวียร์', surname: 'เสือวงษ์', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G2' },
+            { id: '6414101426', prefix: 'นางสาว', name: 'สุชานาถ', surname: 'เพชรจิตร', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G3' },
+            { id: '6414101428', prefix: 'นางสาว', name: 'โสภิตนภา', surname: 'เสยสูงเนิน', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G4' },
+            { id: '6414101433', prefix: 'นางสาว', name: 'เอมิกา', surname: 'บัวลาแก้ว', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G5' },
+            { id: '6414101435', prefix: 'นาย', name: 'ณัฐภัทร', surname: 'ศรีสวาท', major: 'นิเทศศาสตร์บูรณาการ', honor: 0, seat: 'G6' },
+            { id: '6314102336', prefix: 'นาย', name: 'ณรงค์วัฒน์', surname: 'เพชรสวัสดิ์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G7' },
+            { id: '6414102301', prefix: 'นางสาว', name: 'กรรณิการ์', surname: 'กลิ่นขจรไกล', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G8' },
+            { id: '6414102305', prefix: 'นางสาว', name: 'กานติมา', surname: 'เขาคำ', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G9' },
+            { id: '6414102312', prefix: 'นางสาว', name: 'ชนาธิป', surname: 'อุลูโคตร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G10' },
+            { id: '6414102313', prefix: 'นาย', name: 'ชวโรจน์', surname: 'เลิศไกรชัยพร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G11' },
+            { id: '6414102318', prefix: 'นางสาว', name: 'ณัฐกานต์', surname: 'สวยแสง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G12' },
+            { id: '6414102323', prefix: 'นางสาว', name: 'เบญจวรรณ', surname: 'แปลงล้วน', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G13' },
+            { id: '6414102325', prefix: 'นางสาว', name: 'ปรียาภรณ์', surname: 'ศรีโยธา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G14' },
+            { id: '6414102330', prefix: 'นางสาว', name: 'พิมญาดา', surname: 'ประสิทธิกูล', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G15' },
+            { id: '6414102331', prefix: 'นางสาว', name: 'พีรดา', surname: 'เชียงวันนา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G16' },
+            { id: '6414102332', prefix: 'ว่าที่ร้อยตรี', name: 'ภราดร', surname: 'ธรรมทรรศนะดี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G17' },
+            { id: '6414102335', prefix: 'ว่าที่ร้อยตรี', name: 'รัชชานนท์', surname: 'พาธะขัน', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G18' },
+            { id: '6414102339', prefix: 'นางสาว', name: 'วรรณ์วิษา', surname: 'เป็งดอก', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G19' },
+            { id: '6414102341', prefix: 'นาย', name: 'วีรพัฒน์', surname: 'รัตพันธ์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G20' },
+            { id: '6414102346', prefix: 'นางสาว', name: 'สุชัญญา', surname: 'สกุลจรรยาดี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G21' },
+            { id: '6414102348', prefix: 'นางสาว', name: 'สุพัชชา', surname: 'สุวิมลทราทิพย์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G22' },
+            { id: '6414102355', prefix: 'นางสาว', name: 'อารยา', surname: 'รัตนชุลี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G23' },
+            { id: '6414102356', prefix: 'นางสาว', name: 'เอเลนา', surname: 'ยองโก มาคา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G24' },
+            { id: '6414102363', prefix: 'นาย', name: 'กรเพชร', surname: 'หนูขาว', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G25' },
+            { id: '6414102365', prefix: 'ว่าที่ร้อยตรีหญิง', name: 'กันตยา', surname: 'ไพรอนุรักษ์คีรี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G26' },
+            { id: '6414102368', prefix: 'นางสาว', name: 'จิตรวรรณ', surname: 'สอนสั่ง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G27' },
+            { id: '6414102369', prefix: 'นาย', name: 'จิรเดช', surname: 'อรุณปรีย์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G28' },
+            { id: '6414102370', prefix: 'นางสาว', name: 'จิราภา', surname: 'ปลองคีรี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G29' },
+            { id: '6414102371', prefix: 'นางสาว', name: 'จีรนันท์', surname: 'กันทะเนตร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G30' },
+            { id: '6414102374', prefix: 'นาย', name: 'เจษฎากร', surname: 'ช่วยรักษ์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G31' },
+            { id: '6414102376', prefix: 'นางสาว', name: 'ชนาภา', surname: 'เดชชัยภูมิ', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G32' },
+            { id: '6414102378', prefix: 'นาย', name: 'ชิติพัทธ์', surname: 'หาญนำผลดี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G33' },
+            { id: '6414102385', prefix: 'นาย', name: 'ณัฐพล', surname: 'วงศ์ปาน', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G34' },
+            { id: '6414102386', prefix: 'นางสาว', name: 'ณิชนันทน์', surname: 'จันทศร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G35' },
+            { id: '6414102387', prefix: 'นางสาว', name: 'ณิชา', surname: 'บุญหลง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G36' },
+            { id: '6414102389', prefix: 'นาย', name: 'ทิวา', surname: 'ดุมนิล', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G37' },
+            { id: '6414102391', prefix: 'นาย', name: 'ธนภัทร', surname: 'หล้าพระบาง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G38' },
+            { id: '6414102392', prefix: 'นางสาว', name: 'ธนัชพร', surname: 'สังสีแก้ว', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G39' },
+            { id: '6414102393', prefix: 'นาย', name: 'ธนากร', surname: 'ณ ลำพูน', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G40' },
+            { id: '6414102397', prefix: 'นางสาว', name: 'ธิติพร', surname: 'แย้มวจี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G41' },
+            { id: '6414102398', prefix: 'นาย', name: 'ธิติวุฒิ', surname: 'ยินดี', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G42' },
+            { id: '6414102399', prefix: 'นางสาว', name: 'นพมาศ', surname: 'พวงมาลา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G43' },
+            { id: '6414102402', prefix: 'นางสาว', name: 'นันท์นภัส', surname: 'ณัฐวิทย์ธัญญา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G44' },
+            { id: '6414102403', prefix: 'นาย', name: 'นิธิกร', surname: 'คอง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'G45' },
+            { id: '6414102404', prefix: 'นาย', name: 'นิรวิทย์', surname: 'จักรแตร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H1' },
+            { id: '6414102413', prefix: 'นาย', name: 'ปิยะ', surname: 'ขันบันลังค์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H2' },
+            { id: '6414102415', prefix: 'นางสาว', name: 'ฝ้าย', surname: '-', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H3' },
+            { id: '6414102418', prefix: 'นางสาว', name: 'พชรภรณ์', surname: 'สุภาคมล', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H4' },
+            { id: '6414102419', prefix: 'นางสาว', name: 'พรพรรณ', surname: 'ภูมิเรศสุนทร', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H5' },
+            { id: '6414102422', prefix: 'นางสาว', name: 'พิชญาภา', surname: 'จิวเดช', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H6' },
+            { id: '6414102423', prefix: 'นางสาว', name: 'พิชิตา', surname: 'สนใจ', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H7' },
+            { id: '6414102431', prefix: 'นางสาว', name: 'มาริตา', surname: 'เกตบุญ', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H8' },
+            { id: '6414102432', prefix: 'นางสาว', name: 'เยาวภา', surname: 'แซ่เฮ้อ', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H9' },
+            { id: '6414102437', prefix: 'นางสาว', name: 'วาสนา', surname: 'ใกล้จันอัด', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H10' },
+            { id: '6414102438', prefix: 'นางสาว', name: 'วิลาวัณย์', surname: 'อินผ่อง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H11' },
+            { id: '6414102441', prefix: 'นางสาว', name: 'ศิลป์สุภา', surname: 'เล็กส่วย', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H12' },
+            { id: '6414102449', prefix: 'นางสาว', name: 'สุธีรา', surname: 'ศรีสุนา', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H13' },
+            { id: '6414102450', prefix: 'นางสาว', name: 'สุภัทรา', surname: 'เนาว์ประดิษฐ์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H14' },
+            { id: '6414102453', prefix: 'นางสาว', name: 'อภิสรา', surname: 'ทินนัง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H15' },
+            { id: '6414102454', prefix: 'นาย', name: 'อรรถกร', surname: 'อุตรรักษ์', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H16' },
+            { id: '6414102455', prefix: 'นางสาว', name: 'อรวรรณ', surname: 'จันทร์งาม', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H17' },
+            { id: '6414102458', prefix: 'นางสาว', name: 'อุไรวรรณ', surname: 'โพธิ์ทอง', major: 'ภาษาอังกฤษ', honor: 0, seat: 'H18' },
         ];
 
         // --- State Management ---
@@ -301,7 +303,8 @@
                 s.name.includes(searchTerm) || 
                 s.surname.includes(searchTerm) || 
                 s.id.includes(searchTerm) ||
-                s.major.includes(searchTerm)
+                s.major.includes(searchTerm) ||
+                (s.seat && s.seat.toLowerCase().includes(searchTerm.toLowerCase()))
             );
 
             // Clear
@@ -338,10 +341,12 @@
                         </span>`;
                     }
 
-                    // ID Warning for new students
-                    const idDisplay = student.id.startsWith('xxxx') 
-                        ? `<span class="text-red-500 font-bold bg-red-50 px-1 rounded">รอรหัส</span>` 
-                        : student.id;
+                    // Seat Badge
+                    const seatBadge = student.seat 
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                             ที่นั่ง: ${student.seat}
+                           </span>` 
+                        : '';
 
                     html += `
                         <div onclick="toggleAttendance('${student.id}')" 
@@ -350,17 +355,15 @@
                             <div class="flex-1 min-w-0 pr-4">
                                 <div class="flex items-center flex-wrap gap-2 mb-1.5">
                                     <span class="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200">
-                                        ${idDisplay}
+                                        ${student.id}
                                     </span>
+                                    ${seatBadge}
                                     ${honorBadge}
-                                    <span class="text-xs text-slate-400 truncate hidden sm:inline">
-                                        ${student.major}
-                                    </span>
                                 </div>
                                 <h3 class="font-bold text-lg ${nameColor} flex items-center gap-2">
                                     ${student.prefix} ${student.name} ${student.surname}
                                 </h3>
-                                <p class="text-xs text-slate-400 sm:hidden mt-1">${student.major}</p>
+                                <p class="text-xs text-slate-400 mt-1">${student.major}</p>
                             </div>
 
                             <div class="flex-none">
@@ -418,7 +421,6 @@
 
             // Generate Table Rows
             let tableHtml = '';
-            let currentGroup = -1; // To separate sections visually if needed
 
             students.forEach((s, index) => {
                 const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
@@ -433,13 +435,13 @@
                 if (s.honor === 1) honorText = 'อันดับ 1';
                 else if (s.honor === 2) honorText = 'อันดับ 2';
 
-                // Check for generic ID
-                const displayId = s.id.startsWith('xxxx') ? '-' : s.id;
+                const seatText = s.seat || '-';
 
                 tableHtml += `
                     <tr class="border-b border-gray-200 ${rowClass}">
                         <td class="p-2 border-r border-gray-300 text-center text-gray-500 text-xs">${index + 1}</td>
-                        <td class="p-2 border-r border-gray-300 font-mono text-xs">${displayId}</td>
+                        <td class="p-2 border-r border-gray-300 text-center font-bold text-indigo-700">${seatText}</td>
+                        <td class="p-2 border-r border-gray-300 font-mono text-xs">${s.id}</td>
                         <td class="p-2 border-r border-gray-300 font-medium">
                             ${s.prefix}${s.name} ${s.surname}
                             <div class="text-[10px] text-gray-500">${s.major}</div>
@@ -455,7 +457,7 @@
             const element = document.getElementById('print-area');
             const opt = {
                 margin: 0.4,
-                filename: 'รายชื่อบัณฑิต_เรียงตามลำดับ.pdf',
+                filename: 'รายชื่อบัณฑิต_พร้อมเลขที่นั่ง.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
