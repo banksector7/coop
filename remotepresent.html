@@ -99,7 +99,15 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Config ---
-        const manualConfig = null; // แปะ config ของมึงตรงนี้
+        //const manualConfig = null; // แปะ config ของมึงตรงนี้
+        const manualConfig = {
+              apiKey: "AIzaSyCNIyxdpfUj4uwfTV9CujbViiEXjuHzGy0",
+              authDomain: "slide-remote-58419.firebaseapp.com",
+              projectId: "slide-remote-58419",
+              storageBucket: "slide-remote-58419.firebasestorage.app",
+              messagingSenderId: "261973224170",
+              appId: "1:261973224170:web:a054d163f35abe7d648593"
+            };
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'pdf-remote-pro';
         const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
