@@ -83,6 +83,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- Configuration & Data ---
         const SOUNDS = [
             { id: '1', label: 'Applause', icon: 'fa-hands-clapping', color: 'text-emerald-400', file: 'sound1.mp3', freq: 440 },
             { id: '2', label: 'Laugh', icon: 'fa-face-laugh-squint', color: 'text-amber-400', file: 'sound2.mp3', freq: 493 },
@@ -107,9 +108,24 @@
         let audioBuffers = {}; 
         let activeSources = [];
 
-        const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : null;
-        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'event-soundboard-pro';
-        const initialToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : null;
+        // ---ดึง Config จากระบบ Canvas---
+        // ⚠️ โคตรสำคัญ: ถ้ามึงเอาไฟล์นี้ไปรันที่อื่น (เช่น GitHub Pages)
+        // ต้องเอา Config จาก Firebase มาใส่ใน { } ข้างล่างนี้ แทนคำว่า null
+        const manualConfig = null; 
+        /* ตัวอย่าง:
+        const manualConfig = {
+            apiKey: "AIza...",
+            authDomain: "your-app.firebaseapp.com",
+            projectId: "your-app",
+            storageBucket: "your-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:12345:web:abcde"
+        };
+        */
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-soundboard-pro';
+        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         let db, auth;
 
         const gridContainer = document.getElementById('sound-grid');
@@ -174,7 +190,7 @@
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 loadingScreen.classList.add('opacity-0', 'pointer-events-none');
                 mainUi.classList.remove('opacity-0', 'pointer-events-none');
-                startTime = Date.now(); // Reset start time after user interaction
+                startTime = Date.now(); 
             };
         }
 
@@ -238,7 +254,8 @@
 
         async function initFirebase() {
             if (!firebaseConfig) {
-                statusText.innerText = "❌ NO CONFIG FOUND - OFFLINE MODE";
+                statusText.innerText = "❌ NO CONFIG - OFFLINE MODE (BYPASS ACTIVE)";
+                statusText.classList.add('text-red-400');
                 return;
             }
             try {
@@ -251,6 +268,8 @@
                     currentUser = u;
                     if (u) {
                         statusText.innerText = `🟢 SYNC ACTIVE [${u.uid.slice(0,6).toUpperCase()}]`;
+                        statusText.classList.remove('text-red-400');
+                        statusText.classList.add('text-emerald-400');
                         listenToCloud();
                     } else {
                         statusText.innerText = "🔴 AUTH FAILED";
@@ -268,8 +287,7 @@
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        // ปรับเกณฑ์การเช็กเวลาให้ยืดหยุ่นขึ้น (3 วินาที) เผื่อ Clock Drift
-                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 3000));
+                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 5000));
                         if (isNewCommand && change.doc.id !== lastProcessedCmdId) {
                             lastProcessedCmdId = change.doc.id;
                             executeCommand(data.action, data.keyId, data.value);
@@ -278,7 +296,7 @@
                 });
             }, (err) => {
                 console.error(err);
-                statusText.innerText = "❌ SNAPSHOT FAILED";
+                statusText.innerText = "❌ SYNC FAILED";
             });
         }
 
