@@ -9,7 +9,6 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ป้องกันการลากคลุมข้อความเวลาแตะเบิ้ลบนมือถือ */
         body { -webkit-tap-highlight-color: transparent; user-select: none; overflow-x: hidden; }
         .btn-active { transform: scale(0.92) !important; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important; border-color: #34d399 !important; background-color: #10b981 !important; }
         .btn-active * { color: white !important; }
@@ -27,26 +26,24 @@
             <div id="loading-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
         </div>
         <p id="loading-text" class="font-mono text-emerald-400">0%</p>
-        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ถ้าไม่มีไฟล์ .mp3 ระบบจะใช้เสียงสังเคราะห์แทนอัตโนมัติ)</p>
+        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ระบบจะใช้เสียงสังเคราะห์แทนถ้าหาไฟล์ .mp3 ไม่เจอ)</p>
         <button id="btn-start" class="mt-8 hidden bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-emerald-500/30 transition-all active:scale-95">
-            เข้าสู่ระบบควบคุม (คลิกเพื่อเปิดเสียง)
+            เข้าสู่ระบบควบคุม (START)
         </button>
     </div>
 
     <!-- Main UI -->
     <div id="main-ui" class="w-full max-w-6xl p-4 md:p-8 pb-32 lg:pb-8 flex flex-col items-center opacity-0 transition-opacity duration-500 pointer-events-none">
         
-        <!-- Header & Controls -->
         <div class="w-full flex flex-col lg:flex-row items-center justify-between mb-8 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 tracking-tighter">
                     SOUNDBOARD PRO
                 </h1>
-                <p id="status-text" class="text-slate-500 text-[10px] font-mono uppercase tracking-[0.3em] mt-1">🔴 CONNECTING...</p>
+                <p id="status-text" class="text-slate-500 text-[10px] font-mono uppercase tracking-[0.3em] mt-1 italic">🟡 INITIALIZING CLOUD...</p>
             </div>
 
             <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-900/40 p-3 md:p-4 rounded-[2rem] border border-slate-800/50 shadow-2xl">
-                <!-- Mode Switcher -->
                 <div class="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 w-full sm:w-auto">
                     <button id="btn-mode-speaker" class="flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-emerald-500 text-white shadow-lg">SPEAKER</button>
                     <button id="btn-mode-remote" class="flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300">REMOTE</button>
@@ -54,7 +51,6 @@
                 
                 <div class="hidden sm:block h-10 w-[1px] bg-slate-800 mx-1"></div>
                 
-                <!-- Volume Control -->
                 <div class="flex items-center gap-4 w-full sm:w-auto px-2">
                     <button id="btn-mute" class="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-slate-800 text-slate-400">
                         <i id="mute-icon" class="fa-solid fa-volume-high text-lg"></i>
@@ -62,7 +58,7 @@
                     <div class="flex flex-col gap-1.5 flex-grow sm:w-40 md:w-56">
                         <input id="slider-volume" type="range" min="0" max="1" step="0.05" value="1" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                         <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span class="text-slate-500">MASTER VOL</span>
+                            <span class="text-slate-500">VOL</span>
                             <span id="volume-text" class="text-emerald-500">100%</span>
                         </div>
                     </div>
@@ -70,10 +66,8 @@
             </div>
         </div>
 
-        <!-- Grid Buttons (จะถูกสร้างด้วย JS) -->
         <div id="sound-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 w-full"></div>
 
-        <!-- Action Buttons -->
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 lg:relative lg:bg-transparent lg:border-none lg:p-0 lg:mt-6 w-full grid grid-cols-2 gap-4 z-40 max-w-6xl mx-auto">
             <button id="btn-stop" class="bg-red-500/10 text-red-500 border-2 border-red-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
                 <i class="fa-solid fa-power-off text-lg md:text-2xl"></i> STOP
@@ -82,16 +76,13 @@
                 <i class="fa-solid fa-hands-clapping text-lg md:text-2xl"></i> APPLAUSE
             </button>
         </div>
-
     </div>
 
-    <!-- Application Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuration & Data ---
         const SOUNDS = [
             { id: '1', label: 'Applause', icon: 'fa-hands-clapping', color: 'text-emerald-400', file: 'sound1.mp3', freq: 440 },
             { id: '2', label: 'Laugh', icon: 'fa-face-laugh-squint', color: 'text-amber-400', file: 'sound2.mp3', freq: 493 },
@@ -105,33 +96,30 @@
             { id: '0', label: 'Intro', icon: 'fa-clapperboard', color: 'text-teal-400', file: 'sound0.mp3', freq: 1046 },
         ];
         
-        // --- State Variables ---
-        let appMode = 'speaker'; // 'speaker' or 'remote'
+        let appMode = 'speaker'; 
         let currentVolume = 1.0;
         let isMuted = false;
         let lastTap = { id: null, time: 0 };
         let currentUser = null;
         let startTime = Date.now();
         let lastProcessedCmdId = null;
-
-        // --- Audio System Variables ---
         let audioCtx = null;
-        let audioBuffers = {}; // { id: AudioBuffer | null } (null = MP3 not found -> will bypass)
+        let audioBuffers = {}; 
         let activeSources = [];
 
-        // --- Firebase Setup ---
         const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : null;
         const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'event-soundboard-pro';
+        const initialToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : null;
         let db, auth;
 
-        // --- DOM Elements ---
         const gridContainer = document.getElementById('sound-grid');
         const loadingScreen = document.getElementById('loading-screen');
         const mainUi = document.getElementById('main-ui');
         const btnStart = document.getElementById('btn-start');
+        const statusText = document.getElementById('status-text');
         
-        // --- 1. Build UI Grid ---
         function buildGrid() {
+            gridContainer.innerHTML = '';
             SOUNDS.forEach(s => {
                 const btn = document.createElement('button');
                 btn.className = `sound-btn relative group bg-slate-900 border-2 border-slate-800/50 rounded-[2rem] p-6 md:p-8 flex flex-col items-center gap-5 transition-all touch-manipulation shadow-lg`;
@@ -142,78 +130,58 @@
                     <span class="label font-black text-xs md:text-sm uppercase tracking-[0.15em] text-slate-400 transition-colors">${s.label}</span>
                     <span class="hint hidden absolute bottom-2 text-[8px] font-bold text-amber-500 animate-pulse">TAP AGAIN!</span>
                 `;
-                
-                // Event Listener (รองรับทั้ง Mouse และ Touch)
                 btn.addEventListener('pointerdown', (e) => handleInteraction(e, 'play', s.id));
                 gridContainer.appendChild(btn);
             });
 
-            // Action Buttons
-            document.getElementById('btn-stop').addEventListener('pointerdown', (e) => handleInteraction(e, 'stop'));
-            document.getElementById('btn-applause').addEventListener('pointerdown', (e) => handleInteraction(e, 'play', 'applause'));
+            document.getElementById('btn-stop').onclick = (e) => handleInteraction(e, 'stop');
+            document.getElementById('btn-applause').onclick = (e) => handleInteraction(e, 'play', 'applause');
+            document.getElementById('btn-mode-speaker').onclick = () => setMode('speaker');
+            document.getElementById('btn-mode-remote').onclick = () => setMode('remote');
+            document.getElementById('btn-mute').onclick = () => sendCommand('setMute', null, !isMuted);
+            document.getElementById('slider-volume').oninput = (e) => sendCommand('setVolume', null, parseFloat(e.target.value));
             
-            // Mode Switcher
-            document.getElementById('btn-mode-speaker').addEventListener('click', () => setMode('speaker'));
-            document.getElementById('btn-mode-remote').addEventListener('click', () => setMode('remote'));
-
-            // Volume & Mute
-            document.getElementById('btn-mute').addEventListener('click', () => sendCommand('setMute', null, !isMuted));
-            document.getElementById('slider-volume').addEventListener('input', (e) => sendCommand('setVolume', null, parseFloat(e.target.value)));
-            
-            // Keyboard (PC)
-            document.addEventListener('keydown', (e) => {
+            document.onkeydown = (e) => {
                 if(e.repeat) return;
                 if(e.key >= '0' && e.key <= '9') sendCommand('play', e.key);
                 if(e.code === 'Space') { e.preventDefault(); sendCommand('stop'); }
                 if(e.code === 'Enter') { e.preventDefault(); sendCommand('play', 'applause'); }
-            });
+            };
         }
 
-        // --- 2. Initialize Audio & Preload ---
         async function initAudioSystem() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-
             const allFiles = [...SOUNDS, { id: 'applause', file: 'applause.mp3' }];
             let loaded = 0;
-
             for (const item of allFiles) {
                 try {
                     const res = await fetch(`./${item.file}`);
-                    if (!res.ok) throw new Error('File not found');
+                    if (!res.ok) throw new Error('404');
                     const arrayBuffer = await res.arrayBuffer();
                     audioBuffers[item.id] = await audioCtx.decodeAudioData(arrayBuffer);
                 } catch (err) {
-                    // หาไฟล์ไม่เจอ ปล่อยไว้เป็น null ระบบจะ Bypass ใช้เสียง Synth แทน
-                    console.log(`[Bypass] ไม่พบไฟล์ ${item.file} -> จะใช้เสียงสังเคราะห์แทน`);
                     audioBuffers[item.id] = null; 
                 }
-                
                 loaded++;
                 const p = Math.round((loaded / allFiles.length) * 100);
                 document.getElementById('loading-bar').style.width = `${p}%`;
                 document.getElementById('loading-text').innerText = `${p}%`;
             }
-
-            // แสดงปุ่มเริ่มทำงาน (ต้องคลิกเพื่อ Allow Audio Context)
-            document.getElementById('loading-text').innerText = "✅ พร้อมใช้งาน!";
+            document.getElementById('loading-text').innerText = "✅ READY!";
             btnStart.classList.remove('hidden');
-            btnStart.addEventListener('click', () => {
+            btnStart.onclick = () => {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 loadingScreen.classList.add('opacity-0', 'pointer-events-none');
                 mainUi.classList.remove('opacity-0', 'pointer-events-none');
-            });
+                startTime = Date.now(); // Reset start time after user interaction
+            };
         }
 
-        // --- 3. Playback Logic (Bypass Included) ---
         function playSound(id) {
-            if (appMode === 'remote') return; // รีโมทไม่ต้องดัง
-            if (!audioCtx) return;
+            if (appMode === 'remote' || !audioCtx) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            // เช็คว่ามีไฟล์โหลดไว้ไหม
             if (audioBuffers[id]) {
-                // เล่นจากไฟล์ MP3
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffers[id];
                 const gain = audioCtx.createGain();
@@ -224,29 +192,21 @@
                 activeSources.push(source);
                 source.onended = () => { activeSources = activeSources.filter(s => s !== source); };
             } else {
-                // BYPASS: เล่นเสียงสังเคราะห์ (Synth)
                 playSynthBeep(id);
             }
-
             flashUI(id);
         }
 
         function playSynthBeep(id) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
-            // หาความถี่จาก Config
             const soundConfig = SOUNDS.find(s => s.id === id);
             const freq = id === 'applause' ? 1200 : (soundConfig ? soundConfig.freq : 440);
-            
             osc.type = id === 'applause' ? 'triangle' : 'sine';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            // ตั้งค่า Volume
-            const targetVol = isMuted ? 0 : currentVolume * 0.1; // เบาลงหน่อยเดี๋ยวหูแตก
+            const targetVol = isMuted ? 0 : currentVolume * 0.1;
             gain.gain.setValueAtTime(targetVol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5); // เสียงค่อยๆ หายใน 0.5 วิ
-            
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
@@ -258,58 +218,48 @@
             activeSources = [];
         }
 
-        // --- 4. Interaction & Double Tap Logic ---
         function handleInteraction(e, action, keyId = null) {
             const now = Date.now();
-            const isTouch = e.pointerType === 'touch';
-
-            // ถ้าเป็นเมาส์ (PC) ให้ทำงานเลย
-            if (!isTouch) {
-                sendCommand(action, keyId);
-                return;
-            }
-
-            // ถ้าเป็นทัชสกรีน (Mobile) ปุ่ม Play ต้องเบิ้ล 2 ที
+            const isTouch = e.pointerType === 'touch' || e.type.includes('touch');
+            if (!isTouch) { sendCommand(action, keyId); return; }
             if (action === 'play') {
                 const timeDiff = now - lastTap.time;
-                if (lastTap.id === keyId && timeDiff < 350) {
-                    // Double Tap สำเร็จ
+                if (lastTap.id === keyId && timeDiff < 400) {
                     sendCommand(action, keyId);
                     lastTap = { id: null, time: 0 };
                     clearShakeUI(keyId);
                 } else {
-                    // Tap ครั้งแรก
                     lastTap = { id: keyId, time: now };
                     showShakeUI(keyId);
-                    setTimeout(() => clearShakeUI(keyId), 350);
+                    setTimeout(() => clearShakeUI(keyId), 400);
                 }
-            } else {
-                // Stop ให้ทำงานทีเดียวเลยเพื่อความไว
-                sendCommand(action, keyId);
-            }
+            } else { sendCommand(action, keyId); }
         }
 
-        // --- 5. Network & Firebase Logic ---
         async function initFirebase() {
-            if (!firebaseConfig) return;
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            // 1. Auth Rule
-            if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-                await signInWithCustomToken(auth, window.__initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
+            if (!firebaseConfig) {
+                statusText.innerText = "❌ NO CONFIG FOUND - OFFLINE MODE";
+                return;
             }
-
-            onAuthStateChanged(auth, (u) => {
-                currentUser = u;
-                document.getElementById('status-text').innerText = u ? `🟢 SYNC ACTIVE [${u.uid.slice(0,6)}]` : '🔴 CONNECTING...';
-                
-                // 2. Listen for Data (Speaker Mode)
-                if (u) listenToCloud();
-            });
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                if (initialToken) { await signInWithCustomToken(auth, initialToken); } 
+                else { await signInAnonymously(auth); }
+                onAuthStateChanged(auth, (u) => {
+                    currentUser = u;
+                    if (u) {
+                        statusText.innerText = `🟢 SYNC ACTIVE [${u.uid.slice(0,6).toUpperCase()}]`;
+                        listenToCloud();
+                    } else {
+                        statusText.innerText = "🔴 AUTH FAILED";
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = "❌ CLOUD ERROR";
+            }
         }
 
         function listenToCloud() {
@@ -318,55 +268,42 @@
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        // ป้องกันดึงข้อมูลเก่า
-                        if (data.sentAt && data.sentAt > startTime && change.doc.id !== lastProcessedCmdId) {
+                        // ปรับเกณฑ์การเช็กเวลาให้ยืดหยุ่นขึ้น (3 วินาที) เผื่อ Clock Drift
+                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 3000));
+                        if (isNewCommand && change.doc.id !== lastProcessedCmdId) {
                             lastProcessedCmdId = change.doc.id;
                             executeCommand(data.action, data.keyId, data.value);
                         }
                     }
                 });
-            }, (err) => console.error("Snapshot error:", err));
+            }, (err) => {
+                console.error(err);
+                statusText.innerText = "❌ SNAPSHOT FAILED";
+            });
         }
 
         async function sendCommand(action, keyId = null, value = null) {
-            // ทำในเครื่องตัวเองก่อน (No delay)
             executeCommand(action, keyId, value);
-
-            // ส่งขึ้น Cloud ให้เครื่องอื่นทำตาม
             if (currentUser && db) {
                 try {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands'), {
                         action, keyId, value, sentAt: Date.now(), sender: currentUser.uid
                     });
-                } catch(e) { console.error("Send failed:", e); }
+                } catch(e) { console.error(e); }
             }
         }
 
         function executeCommand(action, keyId, value) {
             if (action === 'play') playSound(keyId);
             if (action === 'stop') stopAll();
-            if (action === 'setVolume') {
-                currentVolume = value;
-                updateVolumeUI();
-            }
-            if (action === 'setMute') {
-                isMuted = value;
-                updateVolumeUI();
-            }
+            if (action === 'setVolume') { currentVolume = value; updateVolumeUI(); }
+            if (action === 'setMute') { isMuted = value; updateVolumeUI(); }
         }
 
-        // --- 6. UI Updaters ---
         function setMode(newMode) {
             appMode = newMode;
-            const btnSpk = document.getElementById('btn-mode-speaker');
-            const btnRem = document.getElementById('btn-mode-remote');
-            if(newMode === 'speaker') {
-                btnSpk.className = "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-emerald-500 text-white shadow-lg";
-                btnRem.className = "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300";
-            } else {
-                btnRem.className = "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-blue-600 text-white shadow-lg";
-                btnSpk.className = "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300";
-            }
+            document.getElementById('btn-mode-speaker').className = newMode === 'speaker' ? "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-emerald-500 text-white shadow-lg" : "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300";
+            document.getElementById('btn-mode-remote').className = newMode === 'remote' ? "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-blue-600 text-white shadow-lg" : "flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300";
         }
 
         function updateVolumeUI() {
@@ -374,7 +311,6 @@
             const btnMute = document.getElementById('btn-mute');
             const iconMute = document.getElementById('mute-icon');
             const txtVol = document.getElementById('volume-text');
-
             if (isMuted) {
                 btnMute.className = "flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-red-500 text-white animate-pulse";
                 iconMute.className = "fa-solid fa-volume-xmark text-lg";
@@ -399,21 +335,21 @@
             const el = document.querySelector(`.sound-btn[data-id="${id}"]`);
             if(!el) return;
             el.classList.add('shake-hint');
-            el.querySelector('.hint').classList.remove('hidden');
+            const hint = el.querySelector('.hint');
+            if(hint) hint.classList.remove('hidden');
         }
 
         function clearShakeUI(id) {
             const el = document.querySelector(`.sound-btn[data-id="${id}"]`);
             if(!el) return;
             el.classList.remove('shake-hint');
-            el.querySelector('.hint').classList.add('hidden');
+            const hint = el.querySelector('.hint');
+            if(hint) hint.classList.add('hidden');
         }
 
-        // --- Boot Sequence ---
         buildGrid();
-        initAudioSystem(); // เริ่มโหลดเสียง (หรือเตรียม Bypass) ทันที
-        initFirebase();    // เชื่อมต่อระบบ Cloud Sync
-
+        initAudioSystem();
+        initFirebase();
     </script>
 </body>
 </html>
