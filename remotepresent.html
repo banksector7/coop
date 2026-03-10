@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Remote PDF Slider PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js สำหรับอ่าน PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; user-select: none; overflow: hidden; background: #020617; }
+        #pdf-canvas { max-width: 100%; max-height: 100vh; margin: auto; display: block; }
+        .swipe-area { touch-action: none; }
+        .page-transition { transition: all 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col items-center">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-emerald-500 mb-4"></div>
+        <h2 class="text-xl font-bold">กำลังโหลดพรีเซนต์...</h2>
+        <p id="loading-subtext" class="text-slate-500 text-sm mt-2">เตรียมระบบ Remote Sync</p>
+        <button id="btn-start" class="mt-8 hidden bg-emerald-500 py-3 px-8 rounded-full font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+            เริ่มใช้งาน (START)
+        </button>
+    </div>
+
+    <!-- Main Display (Speaker Mode) -->
+    <div id="speaker-view" class="fixed inset-0 flex flex-col items-center justify-center bg-black hidden">
+        <canvas id="pdf-canvas" class="shadow-2xl"></canvas>
+        <!-- Placeholder if PDF fails -->
+        <div id="pdf-placeholder" class="hidden flex flex-col items-center">
+            <h1 id="placeholder-page" class="text-[20vw] font-black text-slate-800">1</h1>
+            <p class="text-slate-500">พรีเซนต์จำลอง (ไม่พบไฟล์ presentation.pdf)</p>
+        </div>
+        <div class="absolute bottom-4 left-4 bg-black/50 px-4 py-2 rounded-full text-xs font-mono border border-white/10">
+            PAGE: <span id="current-page-num">1</span> / <span id="total-pages-num">?</span>
+        </div>
+    </div>
+
+    <!-- Remote UI (Remote Mode) -->
+    <div id="remote-view" class="fixed inset-0 flex flex-col hidden overflow-hidden">
+        <div class="p-6 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+            <div>
+                <h2 class="font-black text-emerald-400">REMOTE CONTROL</h2>
+                <p id="remote-status" class="text-[10px] text-slate-500 font-mono">CONNECTING...</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="remote-page-display" class="bg-slate-800 px-3 py-1 rounded-lg font-bold text-sm">P. 1</span>
+            </div>
+        </div>
+        
+        <!-- Touch Pad Area -->
+        <div id="touch-pad" class="flex-grow flex flex-col items-center justify-center swipe-area relative">
+            <div class="flex flex-col items-center opacity-20 pointer-events-none">
+                <i class="fa-solid fa-up-down text-6xl mb-4"></i>
+                <p class="font-bold uppercase tracking-widest">SWIPE UP / DOWN</p>
+                <p class="text-xs">TO CHANGE SLIDE</p>
+            </div>
+            
+            <!-- Visual Feedback -->
+            <div id="swipe-indicator" class="absolute inset-0 pointer-events-none flex items-center justify-center text-8xl transition-all opacity-0">
+                <i id="indicator-icon" class="fa-solid"></i>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-900 grid grid-cols-2 gap-4 border-t border-slate-800">
+            <button id="btn-prev" class="bg-slate-800 py-6 rounded-2xl font-bold active:scale-95 transition-all"><i class="fa-solid fa-chevron-up mb-2 block"></i> PREV</button>
+            <button id="btn-next" class="bg-emerald-600 py-6 rounded-2xl font-bold active:scale-95 transition-all"><i class="fa-solid fa-chevron-down mb-2 block"></i> NEXT</button>
+        </div>
+    </div>
+
+    <!-- Setup Overlay -->
+    <div id="mode-selector" class="fixed inset-0 z-40 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-8 hidden">
+        <h2 class="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">เลือกโหมดการใช้งาน</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+            <button id="select-speaker" class="bg-slate-900 border-2 border-slate-800 p-8 rounded-[2rem] hover:border-emerald-500 transition-all group flex flex-col items-center gap-4">
+                <i class="fa-solid fa-desktop text-5xl text-slate-700 group-hover:text-emerald-500"></i>
+                <div class="text-center">
+                    <div class="font-bold text-xl">SPEAKER (หน้าจอหลัก)</div>
+                    <div class="text-slate-500 text-sm">ต่อโปรเจคเตอร์เพื่อโชว์ PDF</div>
+                </div>
+            </button>
+            <button id="select-remote" class="bg-slate-900 border-2 border-slate-800 p-8 rounded-[2rem] hover:border-blue-500 transition-all group flex flex-col items-center gap-4">
+                <i class="fa-solid fa-mobile-screen-button text-5xl text-slate-700 group-hover:text-blue-500"></i>
+                <div class="text-center">
+                    <div class="font-bold text-xl">REMOTE (iPad/มือถือ)</div>
+                    <div class="text-slate-500 text-sm">ใช้รูดหน้าจอเพื่อเปลี่ยนหน้า</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Config ---
+        const manualConfig = null; // แปะ config ของมึงตรงนี้
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pdf-remote-pro';
+        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db, auth, currentUser;
+        let appMode = 'speaker'; 
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 5; // Default for placeholder
+        let startTime = Date.now();
+        let lastProcessedId = null;
+
+        // --- PDF Rendering Logic ---
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+
+        async function initPdf() {
+            const loadingText = document.getElementById('loading-subtext');
+            try {
+                const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                
+                loadingText.innerText = "กำลังเข้าถึงไฟล์ presentation.pdf...";
+                pdfDoc = await pdfjsLib.getDocument('./presentation.pdf').promise;
+                totalPages = pdfDoc.numPages;
+                document.getElementById('total-pages-num').innerText = totalPages;
+                renderPage(1);
+            } catch (err) {
+                console.warn("PDF Not found, using placeholder mode.");
+                document.getElementById('pdf-canvas').classList.add('hidden');
+                document.getElementById('pdf-placeholder').classList.remove('hidden');
+                document.getElementById('total-pages-num').innerText = totalPages;
+                updatePlaceholder(1);
+            }
+            
+            document.getElementById('loading-subtext').innerText = "พร้อมใช้งาน!";
+            document.getElementById('btn-start').classList.remove('hidden');
+            document.getElementById('btn-start').onclick = () => {
+                document.getElementById('loading-screen').classList.add('opacity-0', 'pointer-events-none');
+                document.getElementById('mode-selector').classList.remove('hidden');
+            };
+        }
+
+        async function renderPage(num) {
+            if (!pdfDoc) {
+                updatePlaceholder(num);
+                return;
+            }
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 2 }); // High quality
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+            document.getElementById('current-page-num').innerText = num;
+            currentPage = num;
+        }
+
+        function updatePlaceholder(num) {
+            document.getElementById('placeholder-page').innerText = num;
+            document.getElementById('current-page-num').innerText = num;
+            currentPage = num;
+        }
+
+        // --- Interaction Logic ---
+        function changePage(delta) {
+            let newPage = currentPage + delta;
+            if (newPage < 1) newPage = 1;
+            if (newPage > totalPages) newPage = totalPages;
+            
+            if (newPage !== currentPage) {
+                sendCommand('gotoPage', newPage);
+            }
+        }
+
+        // --- Swipe Detection (Remote) ---
+        let touchStartY = 0;
+        const touchPad = document.getElementById('touch-pad');
+        
+        touchPad.addEventListener('touchstart', e => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, false);
+
+        touchPad.addEventListener('touchend', e => {
+            let touchEndY = e.changedTouches[0].screenY;
+            let diff = touchStartY - touchEndY;
+            
+            if (Math.abs(diff) > 50) { // ต้องรูดเกิน 50px
+                if (diff > 0) {
+                    changePage(1); // Swipe Up -> Next
+                    showIndicator('fa-chevron-down');
+                } else {
+                    changePage(-1); // Swipe Down -> Prev
+                    showIndicator('fa-chevron-up');
+                }
+            }
+        }, false);
+
+        function showIndicator(icon) {
+            const ind = document.getElementById('swipe-indicator');
+            const iconEl = document.getElementById('indicator-icon');
+            iconEl.className = `fa-solid ${icon}`;
+            ind.classList.add('opacity-40', 'scale-110');
+            setTimeout(() => ind.classList.remove('opacity-40', 'scale-110'), 300);
+        }
+
+        // --- Cloud Sync ---
+        async function initFirebase() {
+            if (!firebaseConfig) return;
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                if (initialToken) await signInWithCustomToken(auth, initialToken);
+                else await signInAnonymously(auth);
+                
+                onAuthStateChanged(auth, u => {
+                    currentUser = u;
+                    const status = document.getElementById('remote-status');
+                    if (u) {
+                        status.innerText = `🟢 SYNC ACTIVE [${u.uid.slice(0,4)}]`;
+                        listenToCloud();
+                    }
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        function listenToCloud() {
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands');
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const data = change.doc.data();
+                        if (data.sentAt > startTime && change.doc.id !== lastProcessedId) {
+                            lastProcessedId = change.doc.id;
+                            if (data.action === 'gotoPage') {
+                                renderPage(data.value);
+                                document.getElementById('remote-page-display').innerText = `P. ${data.value}`;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        async function sendCommand(action, value) {
+            // Local update
+            if (appMode === 'speaker') renderPage(value);
+            document.getElementById('remote-page-display').innerText = `P. ${value}`;
+
+            if (currentUser && db) {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands'), {
+                    action, value, sentAt: Date.now(), sender: currentUser.uid
+                });
+            }
+        }
+
+        // --- Mode Selector ---
+        document.getElementById('select-speaker').onclick = () => {
+            appMode = 'speaker';
+            document.getElementById('mode-selector').classList.add('hidden');
+            document.getElementById('speaker-view').classList.remove('hidden');
+            startTime = Date.now();
+        };
+
+        document.getElementById('select-remote').onclick = () => {
+            appMode = 'remote';
+            document.getElementById('mode-selector').classList.add('hidden');
+            document.getElementById('remote-view').classList.remove('hidden');
+            startTime = Date.now();
+        };
+
+        document.getElementById('btn-prev').onclick = () => changePage(-1);
+        document.getElementById('btn-next').onclick = () => changePage(1);
+
+        // --- Start ---
+        initPdf();
+        initFirebase();
+
+    </script>
+</body>
+</html>
