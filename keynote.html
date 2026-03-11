@@ -80,14 +80,14 @@
 
         // Setup Firebase
         //let firebaseConfig = { projectId: "demo-project" };
-      const firebaseConfig = {
-            apiKey: "AIzaSyAO4Z61ikmut55i8tLLP5dURwASx2N0C6c",
-            authDomain: "keynote-7d564.firebaseapp.com",
-            projectId: "keynote-7d564",
-            storageBucket: "keynote-7d564.firebasestorage.app",
-            messagingSenderId: "1017490662449",
-            appId: "1:1017490662449:web:ef8e2743640d7a372ee110"
-          };
+        const firebaseConfig = {
+              apiKey: "AIzaSyAO4Z61ikmut55i8tLLP5dURwASx2N0C6c",
+              authDomain: "keynote-7d564.firebaseapp.com",
+              projectId: "keynote-7d564",
+              storageBucket: "keynote-7d564.firebasestorage.app",
+              messagingSenderId: "1017490662449",
+              appId: "1:1017490662449:web:ef8e2743640d7a372ee110"
+            };
         try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
 
         const app = initializeApp(firebaseConfig);
@@ -122,6 +122,33 @@
                 }
             }, (error) => console.error("DB Error:", error));
         });
+
+        // --- Sound Effect Logic (Pure JS) ---
+        function playSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                // สร้างเสียง "ติ๊ง" แบบผู้ดี
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // โน้ต A5
+
+                gain.gain.setValueAtTime(0.1, ctx.currentTime); // ความดังเริ่มต้น
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); // ค่อยๆ เบาลงใน 0.5 วิ
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {
+                console.log('เล่นเสียงไม่ได้ (อาจจะยังไม่ได้คลิกหน้าจอ)', e);
+            }
+        }
 
         // --- Controller Functions ---
         window.selectMode = (mode) => {
@@ -162,10 +189,13 @@
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen();
             }
+            // เล่นเสียงเงียบๆ 1 ทีเพื่อปลดล็อค AudioContext ของเบราว์เซอร์
+            playSound(); 
         };
 
         function updateScreen(text) {
             const displayObj = document.getElementById('display-text');
+            const fsBtn = document.getElementById('fullscreen-btn');
             
             // รีเซ็ตคลาสอนิเมชั่นเพื่อให้มันเล่นใหม่
             displayObj.classList.remove('animate-text');
@@ -175,6 +205,8 @@
             
             if (text) {
                 displayObj.classList.add('animate-text');
+                if (fsBtn) fsBtn.style.display = 'none'; // ซ่อนปุ่มถ้ามีข้อความขึ้น
+                playSound(); // เล่นเสียงตอนข้อความใหม่มา
             }
         }
     </script>
