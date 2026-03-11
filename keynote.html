@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Keynote Live</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ฟอนต์สไตล์ Apple / Keynote */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        /* พื้นหลังน้ำเงินเข้มแบบ Steve Jobs */
+        .keynote-bg {
+            background: radial-gradient(circle at center, #1e3a5f 0%, #000000 100%);
+            color: white;
+        }
+
+        /* อนิเมชั่นตอนเปลี่ยนคำ */
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-text {
+            animation: fadeInScale 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* ซ่อน UI */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="keynote-bg h-screen w-screen text-white">
+
+    <!-- 1. หน้าเลือกโหมด -->
+    <div id="landing" class="flex flex-col items-center justify-center h-full space-y-6">
+        <h1 class="text-3xl font-light tracking-wider mb-8">KEYNOTE LIVE</h1>
+        <button onclick="selectMode('controller')" class="w-64 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl font-medium text-lg backdrop-blur transition">
+            📱 เป็นมือถือ (คนพิมพ์)
+        </button>
+        <button onclick="selectMode('screen')" class="w-64 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl font-medium text-lg backdrop-blur transition">
+            🖥️ เป็นจอใหญ่ (โปรเจคเตอร์)
+        </button>
+    </div>
+
+    <!-- 2. หน้ามือถือ (มีแค่ช่องพิมพ์ + ปุ่ม) -->
+    <div id="controller-view" class="hidden flex-col h-full w-full p-6 max-w-md mx-auto justify-center space-y-4">
+        <h2 class="text-center text-white/50 text-sm tracking-widest mb-4 uppercase">Controller</h2>
+        
+        <textarea id="keyword-input" 
+            class="w-full bg-white/10 border border-white/30 text-white text-3xl p-6 rounded-2xl focus:outline-none focus:border-white focus:bg-white/20 transition resize-none text-center"
+            rows="3" 
+            placeholder="พิมพ์คำที่นี่..."></textarea>
+            
+        <button onclick="sendKeyword()" class="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-xl shadow-lg transition active:scale-95">
+            ส่งขึ้นจอ
+        </button>
+        
+        <button onclick="clearScreen()" class="w-full py-4 text-white/50 hover:text-white transition text-sm">
+            ล้างหน้าจอ (จอดำ)
+        </button>
+    </div>
+
+    <!-- 3. หน้าจอใหญ่ (มีแค่ตัวหนังสือ) -->
+    <div id="screen-view" class="hidden h-full w-full flex items-center justify-center cursor-none p-8">
+        <button id="fullscreen-btn" onclick="goFullscreen()" class="absolute z-50 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-full font-light hover:bg-white/30 transition">
+            กดเพื่อเข้า Fullscreen
+        </button>
+        <h1 id="display-text" class="text-center font-bold tracking-tight leading-tight w-full break-words" style="font-size: 8vw; text-shadow: 0 10px 30px rgba(0,0,0,0.8);"></h1>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Setup Firebase
+        //let firebaseConfig = { projectId: "demo-project" };
+      const firebaseConfig = {
+            apiKey: "AIzaSyAO4Z61ikmut55i8tLLP5dURwASx2N0C6c",
+            authDomain: "keynote-7d564.firebaseapp.com",
+            projectId: "keynote-7d564",
+            storageBucket: "keynote-7d564.firebasestorage.app",
+            messagingSenderId: "1017490662449",
+            appId: "1:1017490662449:web:ef8e2743640d7a372ee110"
+          };
+        try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'keynote-app';
+        
+        // Database path
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'keynote', 'display');
+
+        // State variables
+        let isScreen = false;
+
+        // Auth
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+
+        // Listen for Auth changes
+        onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            
+            // Listen to Database changes
+            onSnapshot(docRef, (snapshot) => {
+                if (snapshot.exists() && isScreen) {
+                    updateScreen(snapshot.data().text);
+                }
+            }, (error) => console.error("DB Error:", error));
+        });
+
+        // --- Controller Functions ---
+        window.selectMode = (mode) => {
+            document.getElementById('landing').classList.add('hidden');
+            if (mode === 'controller') {
+                document.getElementById('controller-view').classList.replace('hidden', 'flex');
+                document.getElementById('keyword-input').focus();
+            } else {
+                isScreen = true;
+                document.getElementById('screen-view').classList.replace('hidden', 'flex');
+            }
+        };
+
+        window.sendKeyword = () => {
+            const text = document.getElementById('keyword-input').value.trim();
+            setDoc(docRef, { text: text }).catch(e => console.error(e));
+            
+            // ลบคำออกจากกล่องพิมพ์ เผื่อจะพิมพ์คำต่อไปเลย
+            document.getElementById('keyword-input').value = '';
+            document.getElementById('keyword-input').focus();
+        };
+
+        window.clearScreen = () => {
+            setDoc(docRef, { text: "" }).catch(e => console.error(e));
+        };
+
+        // ส่งข้อมูลตอนกดปุ่ม Enter
+        document.getElementById('keyword-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendKeyword();
+            }
+        });
+
+        // --- Screen Functions ---
+        window.goFullscreen = () => {
+            document.getElementById('fullscreen-btn').style.display = 'none';
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+        };
+
+        function updateScreen(text) {
+            const displayObj = document.getElementById('display-text');
+            
+            // รีเซ็ตคลาสอนิเมชั่นเพื่อให้มันเล่นใหม่
+            displayObj.classList.remove('animate-text');
+            void displayObj.offsetWidth; // บังคับให้เบราว์เซอร์ reflow หน้าจอ
+            
+            displayObj.innerText = text;
+            
+            if (text) {
+                displayObj.classList.add('animate-text');
+            }
+        }
+    </script>
+</body>
+</html>
