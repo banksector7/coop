@@ -26,7 +26,7 @@
             <div id="loading-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
         </div>
         <p id="loading-text" class="font-mono text-emerald-400">0%</p>
-        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ระบบจะใช้เสียงสังเคราะห์แทนถ้าหาไฟล์ .mp3 ไม่เจอ)</p>
+        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ระบบจะใช้เสียงสังเคราะห์แทนถ้าหาไฟล์ไม่เจอ)</p>
         <button id="btn-start" class="mt-8 hidden bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-emerald-500/30 transition-all active:scale-95">
             เข้าสู่ระบบควบคุม (START)
         </button>
@@ -66,14 +66,14 @@
             </div>
         </div>
 
-        <div id="sound-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 w-full"></div>
+        <div id="sound-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5 w-full"></div>
 
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 lg:relative lg:bg-transparent lg:border-none lg:p-0 lg:mt-6 w-full grid grid-cols-2 gap-4 z-40 max-w-6xl mx-auto">
             <button id="btn-stop" class="bg-red-500/10 text-red-500 border-2 border-red-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
                 <i class="fa-solid fa-power-off text-lg md:text-2xl"></i> STOP
             </button>
-            <button id="btn-applause" class="bg-emerald-500/10 text-emerald-400 border-2 border-emerald-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-hands-clapping text-lg md:text-2xl"></i> APPLAUSE
+            <button id="btn-victory-bottom" class="bg-yellow-500/10 text-yellow-400 border-2 border-yellow-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
+                <i class="fa-solid fa-trophy text-lg md:text-2xl"></i> VICTORY
             </button>
         </div>
     </div>
@@ -81,20 +81,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuration & Data ---
+        // --- ตรงนี้แหละที่แก้ให้ตรงกับ 8 ไฟล์ในรูปมึง ---
         const SOUNDS = [
-            { id: '1', label: 'Applause', icon: 'fa-hands-clapping', color: 'text-emerald-400', file: 'applause.wav', freq: 440 },
-            { id: '2', label: 'Laugh', icon: 'fa-face-laugh-squint', color: 'text-amber-400', file: 'laugh.wav', freq: 493 },
-            { id: '3', label: 'Rimshot', icon: 'fa-drum', color: 'text-red-400', file: 'drumcomedy.wav', freq: 523 },
-            { id: '4', label: 'Suspense', icon: 'fa-mask', color: 'text-purple-400', file: 'sound4.mp3', freq: 587 },
-            { id: '5', label: 'Victory', icon: 'fa-trophy', color: 'text-yellow-400', file: 'victory.wav', freq: 659 },
-            { id: '6', label: 'Buzzer', icon: 'fa-triangle-exclamation', color: 'text-orange-500', file: 'buzzer.mp3', freq: 698 },
-            { id: '7', label: 'Thinking', icon: 'fa-brain', color: 'text-pink-400', file: 'thinking.mp3', freq: 783 },
-            { id: '8', label: 'Whoosh', icon: 'fa-wind', color: 'text-sky-400', file: 'whoosh.wav', freq: 880 },
-            { id: '9', label: 'Outro', icon: 'fa-door-open', color: 'text-indigo-400', file: 'sound9.mp3', freq: 987 },
-            { id: '0', label: 'Intro', icon: 'fa-clapperboard', color: 'text-teal-400', file: 'sound0.mp3', freq: 1046 },
+            { id: '1', label: 'Ads', icon: 'fa-rectangle-ad', color: 'text-amber-400', file: 'Ads.mp3', freq: 440 },
+            { id: '2', label: 'Comedy', icon: 'fa-masks-theater', color: 'text-purple-400', file: 'comedy.wav', freq: 493 },
+            { id: '3', label: 'Correct', icon: 'fa-circle-check', color: 'text-emerald-400', file: 'correct.mp3', freq: 523 },
+            { id: '4', label: 'Drum', icon: 'fa-drum', color: 'text-red-400', file: 'drumcomedy.wav', freq: 587 },
+            { id: '5', label: 'Ending', icon: 'fa-flag-checkered', color: 'text-blue-400', file: 'ending.mp3', freq: 659 },
+            { id: '6', label: 'Incorrect', icon: 'fa-circle-xmark', color: 'text-orange-500', file: 'incorrect.mp3', freq: 698 },
+            { id: '7', label: 'Victory', icon: 'fa-trophy', color: 'text-yellow-400', file: 'victory.mp3', freq: 783 },
+            { id: '8', label: 'Wordcloud', icon: 'fa-cloud', color: 'text-sky-400', file: 'wordcloud.mp3', freq: 880 }
         ];
         
         let appMode = 'speaker'; 
@@ -108,10 +106,7 @@
         let audioBuffers = {}; 
         let activeSources = [];
 
-        // ---ดึง Config จากระบบ Canvas---
-        // ⚠️ โคตรสำคัญ: ถ้ามึงเอาไฟล์นี้ไปรันที่อื่น (เช่น GitHub Pages)
-        // ต้องเอา Config จาก Firebase มาใส่ใน { } ข้างล่างนี้ แทนคำว่า null
-        //const manualConfig = null; 
+        // Config เดิมของมึง
         const manualConfig = {
               apiKey: "AIzaSyCMZAqnQ-ESuC3YGGnRY0obesoKJgwfcfs",
                       authDomain: "soundboard-49d41.firebaseapp.com",
@@ -120,16 +115,6 @@
                       messagingSenderId: "985691644771",
                       appId: "1:985691644771:web:49a41139fb4449a7a8e956"
             };
-        /* ตัวอย่าง:
-        const manualConfig = {
-            apiKey: "AIza...",
-            authDomain: "your-app.firebaseapp.com",
-            projectId: "your-app",
-            storageBucket: "your-app.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:12345:web:abcde"
-        };
-        */
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-soundboard-pro';
@@ -159,7 +144,8 @@
             });
 
             document.getElementById('btn-stop').onclick = (e) => handleInteraction(e, 'stop');
-            document.getElementById('btn-applause').onclick = (e) => handleInteraction(e, 'play', 'applause');
+            // ผูกปุ่มล่างกับเสียง Victory (id: '7')
+            document.getElementById('btn-victory-bottom').onclick = (e) => handleInteraction(e, 'play', '7');
             document.getElementById('btn-mode-speaker').onclick = () => setMode('speaker');
             document.getElementById('btn-mode-remote').onclick = () => setMode('remote');
             document.getElementById('btn-mute').onclick = () => sendCommand('setMute', null, !isMuted);
@@ -167,16 +153,16 @@
             
             document.onkeydown = (e) => {
                 if(e.repeat) return;
-                if(e.key >= '0' && e.key <= '9') sendCommand('play', e.key);
+                if(e.key >= '1' && e.key <= '8') sendCommand('play', e.key);
                 if(e.code === 'Space') { e.preventDefault(); sendCommand('stop'); }
-                if(e.code === 'Enter') { e.preventDefault(); sendCommand('play', 'applause'); }
+                if(e.code === 'Enter') { e.preventDefault(); sendCommand('play', '7'); } // Enter เล่น Victory
             };
         }
 
         async function initAudioSystem() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-            const allFiles = [...SOUNDS, { id: 'applause', file: 'applause.mp3' }];
+            const allFiles = [...SOUNDS]; // โหลดเฉพาะ 8 ไฟล์ที่มี
             let loaded = 0;
             for (const item of allFiles) {
                 try {
@@ -225,8 +211,8 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             const soundConfig = SOUNDS.find(s => s.id === id);
-            const freq = id === 'applause' ? 1200 : (soundConfig ? soundConfig.freq : 440);
-            osc.type = id === 'applause' ? 'triangle' : 'sine';
+            const freq = soundConfig ? soundConfig.freq : 440;
+            osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             const targetVol = isMuted ? 0 : currentVolume * 0.1;
             gain.gain.setValueAtTime(targetVol, audioCtx.currentTime);
@@ -351,7 +337,14 @@
         }
 
         function flashUI(id) {
-            const el = id === 'applause' ? document.getElementById('btn-applause') : document.querySelector(`.sound-btn[data-id="${id}"]`);
+            let el = document.querySelector(`.sound-btn[data-id="${id}"]`);
+            // ถ้าเป็น id 7 (Victory) ให้กระพริบปุ่มใหญ่ข้างล่างด้วย
+            if(id === '7') {
+                const bottomBtn = document.getElementById('btn-victory-bottom');
+                bottomBtn.classList.add('btn-active');
+                setTimeout(() => bottomBtn.classList.remove('btn-active'), 150);
+            }
+            
             if(!el) return;
             el.classList.add('btn-active');
             setTimeout(() => el.classList.remove('btn-active'), 150);
