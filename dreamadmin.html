@@ -51,24 +51,33 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ตัวแปรเก็บ Firebase
+        // ========================================================
+        // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
+        // ========================================================
+        const manualConfig = null; // แปะ object { apiKey: "...", ... } แทน null ถ้าไม่ได้รันใน Canvas
+
         let db, appId, userDoc;
 
-        function initFirebase() {
-            const fConfigRaw = typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}';
-            //let firebaseConfig = {};
+        async function initFirebase() {
+            //let firebaseConfig = manualConfig;
+
             const firebaseConfig = {
-                  apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
-                  authDomain: "fireworks-d5460.firebaseapp.com",
-                  projectId: "fireworks-d5460",
-                  storageBucket: "fireworks-d5460.firebasestorage.app",
-                  messagingSenderId: "663921177257",
-                  appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+                  apiKey: "AIzaSyAO4Z61ikmut55i8tLLP5dURwASx2N0C6c",
+                  authDomain: "keynote-7d564.firebaseapp.com",
+                  projectId: "keynote-7d564",
+                  storageBucket: "keynote-7d564.firebasestorage.app",
+                  messagingSenderId: "1017490662449",
+                  appId: "1:1017490662449:web:ef8e2743640d7a372ee110"
                 };
-            try { firebaseConfig = JSON.parse(fConfigRaw); } catch(e){}
             
-            if(!firebaseConfig.projectId) {
-                document.getElementById('auth-status').innerText = "❌ ไม่พบการตั้งค่า Cloud";
+            // ถ้าไม่มี config แบบแมนนวล ให้ดึงจากตัวแปรระบบ (Canvas)
+            if (!firebaseConfig) {
+                const fConfigRaw = typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}';
+                try { firebaseConfig = JSON.parse(fConfigRaw); } catch(e){}
+            }
+            
+            if(!firebaseConfig || !firebaseConfig.projectId) {
+                document.getElementById('auth-status').innerText = "❌ ไม่พบ Config! กรุณาตั้งค่าตาม Step-by-Step";
                 document.getElementById('auth-status').className = "text-red-400";
                 return;
             }
@@ -78,20 +87,23 @@
             db = getFirestore(appFb);
             appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'la-assemble-app';
 
-            const initAuth = async () => {
+            // เริ่มกระบวนการ Login (ต้อง Login ก่อนถึงจะเขียน Firestore ได้)
+            try {
                 if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
                     await signInWithCustomToken(auth, window.__initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-            };
-
-            initAuth();
+            } catch (err) {
+                console.error("Auth Error:", err);
+                document.getElementById('auth-status').innerText = "❌ ต่อ Cloud ไม่ติด (เช็คการเปิด Anonymous Auth)";
+                return;
+            }
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userDoc = user;
-                    document.getElementById('auth-status').innerText = "🟢 เชื่อมต่อระบบพร้อมลุย";
+                    document.getElementById('auth-status').innerText = "🟢 เชื่อมต่อระบบเรียบร้อย (พร้อมสั่งงาน)";
                     document.getElementById('auth-status').className = "text-green-400";
                     document.getElementById('btn-update-words').disabled = false;
                     document.getElementById('btn-trigger').disabled = false;
@@ -104,20 +116,19 @@
             if(!db || !userDoc) return;
             
             const rawText = document.getElementById('words-input').value;
-            // แยกคำด้วย ลูกน้ำ หรือ การขึ้นบรรทัดใหม่
             let words = rawText.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
             
             if(words.length === 0) {
-                alert("ใส่คำศัพท์ให้หน่อยสิ!");
+                alert("พิมพ์ความฝันลงในช่องก่อนนะเพื่อน!");
                 return;
             }
 
             const btn = document.getElementById('btn-update-words');
-            btn.innerText = "กำลังอัปโหลด...";
+            btn.innerText = "กำลังส่งข้อมูล...";
             btn.disabled = true;
 
             try {
-                // เซฟลง Firestore
+                // ต้องใช้ path ตามกฏเหล็กของระบบ เพื่อความปลอดภัยและทำงานได้จริง
                 const controlDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'control', 'state');
                 await setDoc(controlDocRef, { words: words }, { merge: true });
                 
@@ -126,7 +137,7 @@
                 setTimeout(() => msg.classList.add('hidden'), 3000);
             } catch(e) {
                 console.error("Save Error:", e);
-                alert("เกิดข้อผิดพลาดในการเซฟ");
+                alert("เซฟไม่สำเร็จ! เช็ค Rules ใน Firestore ว่าเป็น Test Mode หรือยัง?");
             } finally {
                 btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> อัปเดตคำขึ้นจอโปรเจคเตอร์`;
                 btn.disabled = false;
@@ -137,15 +148,15 @@
         document.getElementById('btn-trigger').addEventListener('click', async () => {
             if(!db || !userDoc) return;
             
-            if(!confirm('สั่ง Assemble ออกจอโปรเจคเตอร์เลยนะ? (กดยืนยันแล้วจะเริ่มนับถอยหลังทันที)')) return;
+            if(!confirm('จะเริ่มนับถอยหลัง 5-0 บนจอใหญ่เลยนะ?')) return;
 
             try {
                 const controlDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'control', 'state');
-                // ใช้ Date.now() เป็นตัวทริกเกอร์ให้มันค่าไม่ซ้ำ จอหลักจะได้รู้ว่ามีการกดใหม่
+                // อัปเดต timestamp เพื่อให้เครื่องรับรู้ว่ามีการกดใหม่
                 await setDoc(controlDocRef, { triggerAssemble: Date.now() }, { merge: true });
             } catch(e) {
                 console.error("Trigger Error:", e);
-                alert("สั่งการไม่สำเร็จ");
+                alert("สั่งการไม่สำเร็จ! เช็คการเชื่อมต่อเน็ตดูหน่อย");
             }
         });
 
