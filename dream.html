@@ -59,7 +59,6 @@
         // ========================================================
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
-        // ก๊อปปี้โค้ด const firebaseConfig = { ... }; ของมึงมาแปะทับบรรทัดนี้ได้เลย!
 
         const firebaseConfig = {
               apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
@@ -70,14 +69,16 @@
               appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
             };
 
-        let WORD_LIST = ["ความฝัน", "อนาคต", "ความหวัง", "ความสุข"]; // ค่าเริ่มต้นตอนยังไม่พิมพ์
+        let WORD_LIST = ["ความฝัน", "อนาคต", "ความหวัง", "ความสุข"]; 
         const START_PARTICLES = 300;
         const MAX_PARTICLES = 3000; 
         const HOT_PINK_RGB = { r: 255, g: 105, b: 180 };
 
+        // 💡 เปลี่ยน URL เสียง Loop ของพลุตรงนี้ 💡
         const AUDIO_FILES = {
             assemble: 'https://actions.google.com/sounds/v1/science_fiction/stutter_bass_hit.ogg',
-            firework: 'https://actions.google.com/sounds/v1/explosions/clank_clatter_explosion.ogg'
+            firework: 'https://actions.google.com/sounds/v1/explosions/clank_clatter_explosion.ogg',
+            firework_loop: 'ใส่_LINK_MP3_เสียงพลุ_วนลูปตรงนี้.mp3' // <--- แปะตรงนี้เลยเพื่อน
         };
 
         let app, particleContainer, fwContainer;
@@ -96,13 +97,18 @@
         let fwTexCache = null;
         let heartTexCache = null; 
 
+        // ตัวแปรเช็คการกดจากแอดมิน
+        let lastTriggerValue = null; 
+
         // --- ระบบเสียง ---
         let audioCtx;
         let audioBuffers = {};
+        let bgmSource = null; // เก็บตัวเล่น loop เผื่อสั่งหยุด
 
         async function loadSounds() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const loader = async (name, url) => {
+                if (url.includes('ใส่_LINK')) return; // ข้ามถ้ายังไม่ได้ใส่ลิ้งก์
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -126,6 +132,21 @@
             source.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             source.start(0);
+        }
+
+        function playLoopSound(name, volume = 0.5) {
+            if (!audioBuffers[name] || !audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (bgmSource) bgmSource.stop(); // หยุดของเก่าถ้ามี
+            
+            bgmSource = audioCtx.createBufferSource();
+            bgmSource.buffer = audioBuffers[name];
+            bgmSource.loop = true; // ตั้งค่าให้เล่นวนลูป
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = volume;
+            bgmSource.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            bgmSource.start(0);
         }
 
         function hslToHex(h, s, l) {
@@ -188,7 +209,6 @@
             app.ticker.add(update);
         }
 
-        // --- ตั้งค่า Firebase ---
         function initFirebase() {
             let config = firebaseConfig;
             if (!config) {
@@ -218,11 +238,9 @@
                     }
                 } catch (err) {
                     console.error("Auth Error:", err);
-                    const msgDiv = document.getElementById('load-msg');
-                    msgDiv.innerText = "❌ Firebase พัง (ลืมเปิด Anonymous Auth หรือเปล่า?)";
-                    msgDiv.style.color = "#ff4444";
+                    document.getElementById('load-msg').innerText = "❌ Firebase พัง (ลืมเปิด Anonymous Auth หรือเปล่า?)";
+                    document.getElementById('load-msg').style.color = "#ff4444";
                     document.getElementById('status-txt').innerText = "Auth Error";
-                    
                     setTimeout(() => {
                         document.getElementById('loading-overlay').style.opacity = '0';
                         setTimeout(() => document.getElementById('loading-overlay').remove(), 500);
@@ -243,6 +261,7 @@
                     onSnapshot(controlDocRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
+                            
                             if (data.words && Array.isArray(data.words) && data.words.length > 0) {
                                 if(JSON.stringify(data.words) !== JSON.stringify(WORD_LIST)) {
                                     WORD_LIST = data.words;
@@ -250,8 +269,17 @@
                                     updateParticleTextures();
                                 }
                             }
-                            if (data.triggerAssemble && data.triggerAssemble > 0) {
-                                if(!isAssembling) startCountdown();
+
+                            // เช็คว่าเป็นคำสั่งกดใหม่จริงๆ เท่านั้น
+                            if (data.triggerAssemble) {
+                                if (lastTriggerValue === null) {
+                                    // โหลดครั้งแรก แค่จำไว้ ไม่ต้องระเบิด
+                                    lastTriggerValue = data.triggerAssemble;
+                                } else if (data.triggerAssemble !== lastTriggerValue) {
+                                    // แอดมินกดปุ่มใหม่ ค่าเปลี่ยนไปแล้ว ลุย!
+                                    lastTriggerValue = data.triggerAssemble;
+                                    if(!isAssembling) startCountdown();
+                                }
                             }
                         }
                     });
@@ -439,7 +467,13 @@
             particles = particles.concat(newParticles);
             assignTargetsEvenly();
             mode = 'BURST'; shakeAmount = 20; 
-            setTimeout(() => { mode = 'ASSEMBLE'; spawnRocket(); }, 1200);
+            
+            // เริ่มจุดพลุรัวๆ และเล่นเสียงวนลูป
+            setTimeout(() => { 
+                mode = 'ASSEMBLE'; 
+                spawnRocket(); 
+                playLoopSound('firework_loop', 0.6); // เรียกใช้เสียงพลุวนลูปตรงนี้เลย
+            }, 1200);
         }
 
         function update(delta) {
