@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- 💥 โซนแหกแคช: สั่งบราวเซอร์ห้ามจำ ห้ามแคช โหลดใหม่ทุกรอบ -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- ============================================== -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LA Assemble - Projector Screen</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
@@ -61,13 +67,13 @@
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
         const firebaseConfig = {
-              apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
-              authDomain: "fireworks-d5460.firebaseapp.com",
-              projectId: "fireworks-d5460",
-              storageBucket: "fireworks-d5460.firebasestorage.app",
-              messagingSenderId: "663921177257",
-              appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
-            };
+  apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
+  authDomain: "fireworks-d5460.firebaseapp.com",
+  projectId: "fireworks-d5460",
+  storageBucket: "fireworks-d5460.firebasestorage.app",
+  messagingSenderId: "663921177257",
+  appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+};
 
         let WORD_LIST = ["ความฝัน", "อนาคต", "ความหวัง", "ความสุข"]; 
         const START_PARTICLES = 300;
@@ -164,19 +170,24 @@
             }
         }
 
-        // 💥 ระบบเปลี่ยนคำที่ปลอดภัยและรับประกันว่าออกครบทุกคำ
+        // 💥 ระบบเปลี่ยนคำที่ปลอดภัย ดุดัน และรับประกันว่าออกครบทุกคำ
         function applyNewWords(rawWordsArray) {
             if (!app || !app.renderer) return;
 
-            // 1. ดักจับพวกก๊อปจาก Excel (มันจะติด Tab \t หรือเว้นวรรคยาวๆ)
             let processedWords = [];
-            rawWordsArray.forEach(w => {
-                // แยกด้วย ลูกน้ำ, ขึ้นบรรทัดใหม่, และ Tab
-                let splitParts = w.split(/[\t\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+            // ถ้าแอดมินเผลอส่งมาเป็น String ก้อนเดียว จับยัดใส่ Array ซะ
+            let rawArray = Array.isArray(rawWordsArray) ? rawWordsArray : [rawWordsArray];
+            
+            rawArray.forEach(w => {
+                // หั่นคำแบบโหดๆ: เจอเว้นบรรทัด (\n), ขึ้นบรรทัดใหม่ (\r), Tab (\t), ลูกน้ำ (,), เซมิโคลอน (;), หรือขีด (|) จับหั่นหมด!
+                let splitParts = String(w).split(/[\r\n\t,;|]+/).map(s => s.trim()).filter(s => s.length > 0);
                 processedWords.push(...splitParts);
             });
             
-            if(processedWords.length === 0) processedWords = ["พิมพ์ความฝันสิ!"];
+            // ลบคำซ้ำออก เพื่อความเร็วในการเรนเดอร์ (เด็กๆ มักพิมพ์คำเดียวกันมาเยอะ)
+            processedWords = [...new Set(processedWords)];
+            
+            if(processedWords.length === 0) processedWords = ["รอรับความฝัน..."];
             WORD_LIST = processedWords;
 
             const oldTextures = [...cachedTextures]; 
@@ -299,9 +310,9 @@
                                     lastReceivedWordsJSON = incomingJSON;
                                     applyNewWords(data.words);
                                     
-                                    // เด้งเตือนขวาล่างให้มั่นใจว่ารับคำแล้ว
+                                    // เด้งเตือนขวาล่างให้มั่นใจว่ารับคำแล้ว พร้อมบอกว่าหั่นออกมาได้กี่คำ
                                     const st = document.getElementById('status-txt');
-                                    st.innerText = "🔥 อัปเดต " + WORD_LIST.length + " คำสดๆ ร้อนๆ!";
+                                    st.innerText = "🔥 ดึงมาโชว์แล้วทั้งหมด " + WORD_LIST.length + " คำรัวๆ!";
                                     st.style.color = "#22d3ee"; 
                                     setTimeout(() => {
                                         st.innerText = "Cloud Connected 🟢";
