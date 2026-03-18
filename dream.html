@@ -176,7 +176,15 @@
         // --- ตั้งค่า Firebase ---
         function initFirebase() {
             const fConfigRaw = typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}';
-            let firebaseConfig = {};
+            //let firebaseConfig = {};
+            const firebaseConfig = {
+                  apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
+                  authDomain: "fireworks-d5460.firebaseapp.com",
+                  projectId: "fireworks-d5460",
+                  storageBucket: "fireworks-d5460.firebasestorage.app",
+                  messagingSenderId: "663921177257",
+                  appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+                };
             try { firebaseConfig = JSON.parse(fConfigRaw); } catch(e){}
             
             // ถ้าไม่มี Config ให้ข้ามไปรัน Local Mode เลย
