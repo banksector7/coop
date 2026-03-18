@@ -46,7 +46,7 @@
             text-shadow: 0 0 40px #ff007f, 0 0 15px #7c3aed;
             z-index: 50;
             pointer-events: none;
-            transition: opacity 1s ease-out; /* เอาไว้ทำเฟดตอนคำเข้า */
+            transition: opacity 1s ease-out; 
         }
         
         #countdown-display {
@@ -84,22 +84,21 @@
         // ========================================================
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
-        const firebaseConfig = {
-  apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
-  authDomain: "fireworks-d5460.firebaseapp.com",
-  projectId: "fireworks-d5460",
-  storageBucket: "fireworks-d5460.firebasestorage.app",
-  messagingSenderId: "663921177257",
-  appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
-}; 
+       const firebaseConfig = {
+              apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
+              authDomain: "fireworks-d5460.firebaseapp.com",
+              projectId: "fireworks-d5460",
+              storageBucket: "fireworks-d5460.firebasestorage.app",
+              messagingSenderId: "663921177257",
+              appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+            };
 
-        let WORD_LIST = []; // เริ่มต้นแบบว่างเปล่าสุดๆ ไม่มีคำอะไรเลย
-        let particlesSpawned = false; // ตัวเช็คว่าเราเสกคำหรือยัง
+        let WORD_LIST = []; 
+        let particlesSpawned = false; 
         const START_PARTICLES = 300;
         const MAX_PARTICLES = 3000; 
         const HOT_PINK_RGB = { r: 255, g: 105, b: 180 };
 
-        // 💡 เปลี่ยน URL เสียง ตรงนี้ 💡
         const AUDIO_FILES = {
             assemble: 'https://actions.google.com/sounds/v1/science_fiction/stutter_bass_hit.ogg',
             firework: 'https://actions.google.com/sounds/v1/explosions/clank_clatter_explosion.ogg',
@@ -122,12 +121,10 @@
         let fwTexCache = null;
         let heartTexCache = null; 
 
-        // ตัวแปรเช็คการกดจากแอดมิน
         let lastTriggerValue = null; 
         let lastReceivedWordsJSON = "";
-        let isFirstLoad = true; // 💥 ดักไม่ให้ดึงค่าเก่าตอนเปิดจอ
+        let isFirstLoad = true; 
 
-        // --- ระบบเสียง ---
         let audioCtx;
         let audioBuffers = {};
         let bgmSource = null; 
@@ -190,7 +187,6 @@
             }
         }
 
-        // 💥 ฟังก์ชันรับคำใหม่แบบสดๆ
         function applyNewWords(rawWordsArray) {
             if (!app || !app.renderer) return;
 
@@ -203,38 +199,38 @@
             });
             
             processedWords = [...new Set(processedWords)];
-            
-            if(processedWords.length === 0) return; // ถ้าส่งมาเปล่าๆ ให้ข้ามไปเลย
+            if(processedWords.length === 0) return; 
             
             WORD_LIST = processedWords;
             const oldTextures = [...cachedTextures]; 
             
-            // สร้าง Texture ชุดใหม่
             cachedTextures = WORD_LIST.map(word => {
                 const text = new PIXI.Text(word, { fontFamily: 'Kanit', fontWeight: '900', fontSize: 24, fill: 0xFFFFFF });
                 return app.renderer.generateTexture(text);
             });
 
-            // 💥 ซ่อนคำว่า "อาชีพในฝัน..." กลางจอทิ้งไปเลย
             const titleElem = document.getElementById('center-title');
             if(titleElem) titleElem.style.opacity = '0';
 
-            // ถ้ายังไม่เคยเสกคำเลย ให้เสกตอนนี้!
+            let shuffledTextures = [...cachedTextures];
+            shuffleArray(shuffledTextures);
+
             if (!particlesSpawned) {
                 for(let i=0; i<START_PARTICLES; i++) {
-                    particles.push(createSingleParticle(Math.random() * app.screen.width, Math.random() * app.screen.height));
+                    let p = createSingleParticle(Math.random() * app.screen.width, Math.random() * app.screen.height);
+                    if(p) {
+                        // 💥 บังคับยัด Texture สลับกันไปมา ชัวร์ 100% ว่ามาครบทุกคำ
+                        p.sprite.texture = shuffledTextures[i % shuffledTextures.length];
+                        particles.push(p);
+                    }
                 }
-                particlesSpawned = true; // จำไว้ว่าเสกแล้ว
+                particlesSpawned = true; 
             } else {
-                // ถ้าเคยเสกแล้ว ก็แค่อัปเดตคำให้ตัวเก่า
-                let shuffledTextures = [...cachedTextures];
-                shuffleArray(shuffledTextures);
                 particles.forEach((p, index) => {
                     p.sprite.texture = shuffledTextures[index % shuffledTextures.length];
                 });
             }
 
-            // เคลียร์เม็ม
             setTimeout(() => {
                 oldTextures.forEach(t => { try { t.destroy(true); } catch(e){} });
             }, 500);
@@ -248,7 +244,8 @@
             });
             document.body.appendChild(app.view);
 
-            particleContainer = new PIXI.ParticleContainer(MAX_PARTICLES, { scale: true, position: true, tint: true });
+            // 💥 แก้ตรงนี้! เปลี่ยนจาก ParticleContainer ที่บั๊กเยอะ เป็น Container ธรรมดา
+            particleContainer = new PIXI.Container();
             fwContainer = new PIXI.Container();
             app.stage.addChild(particleContainer);
             app.stage.addChild(fwContainer); 
@@ -261,8 +258,6 @@
             heartTexCache = app.renderer.generateTexture(heartText);
 
             generateTargets();
-            
-            // 💥 เอาการสร้าง Particle ตอนเริ่มออกไปแล้ว ให้มันจอโล่งๆ ก่อน
 
             window.addEventListener('resize', () => { if(mode === 'ASSEMBLE') generateTargets(true); });
             app.ticker.add(update);
@@ -322,15 +317,12 @@
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             
-                            // 💥 เช็คและรับคำใหม่ทันทีที่ Admin กด Update
                             if (data.words && Array.isArray(data.words)) {
                                 let incomingJSON = JSON.stringify(data.words);
                                 
                                 if (isFirstLoad) {
-                                    // เปิดจอครั้งแรก จำไว้เงียบๆ ไม่ต้องแสดงผล!
                                     lastReceivedWordsJSON = incomingJSON;
                                 } else if (incomingJSON !== lastReceivedWordsJSON) {
-                                    // แอดมินเพิ่งกดยัดคำมาใหม่สดๆ ถึงจะโชว์
                                     lastReceivedWordsJSON = incomingJSON;
                                     applyNewWords(data.words);
                                     
@@ -344,7 +336,6 @@
                                 }
                             }
 
-                            // เช็คว่าเป็นคำสั่งนับถอยหลังจริงๆ
                             if (data.triggerAssemble) {
                                 if (isFirstLoad || lastTriggerValue === null) {
                                     lastTriggerValue = data.triggerAssemble;
@@ -354,7 +345,7 @@
                                 }
                             }
                             
-                            isFirstLoad = false; // ปิดสวิตช์โหลดครั้งแรก
+                            isFirstLoad = false; 
                         }
                     });
                 }
@@ -463,12 +454,10 @@
         }
 
         function startCountdown() {
-            // ดักไว้เผื่อแอดมินลืมกดยัดคำ ให้โชว์อย่างน้อย 1 คำก่อนเริ่ม
             if(particles.length === 0) {
                 applyNewWords(["ความหวัง", "ความฝัน", "อนาคต"]);
             }
             
-            // ซ่อนข้อความตรงกลางอีกรอบเพื่อความชัวร์
             const titleElem = document.getElementById('center-title');
             if(titleElem) titleElem.style.opacity = '0';
 
@@ -539,6 +528,12 @@
             
             const currentCount = particles.length;
             const spawnPerParticle = Math.floor((MAX_PARTICLES - currentCount) / currentCount);
+            
+            // เพื่อให้คำที่แตกตัวออกมายังคงครบทุกคำ เราต้องสลับ Texture แจกใหม่ตอนระเบิดด้วย
+            let shuffledTextures = [...cachedTextures];
+            shuffleArray(shuffledTextures);
+            let textureIndex = 0;
+
             let newParticles = [];
             for(let i=0; i < currentCount; i++) {
                 let parent = particles[i];
@@ -547,6 +542,8 @@
                     let p = createSingleParticle(parent.x, parent.y);
                     if(p) {
                         p.vx = (Math.random() - 0.5) * 50; p.vy = (Math.random() - 0.5) * 50;
+                        p.sprite.texture = shuffledTextures[textureIndex % shuffledTextures.length];
+                        textureIndex++;
                         newParticles.push(p);
                     }
                 }
@@ -555,7 +552,6 @@
             assignTargetsEvenly();
             mode = 'BURST'; shakeAmount = 20; 
             
-            // เริ่มจุดพลุรัวๆ และเล่นเสียงวนลูป
             setTimeout(() => { 
                 mode = 'ASSEMBLE'; 
                 spawnRocket(); 
