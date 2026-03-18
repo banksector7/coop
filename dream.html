@@ -17,7 +17,7 @@
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; 
             font-family: 'Kanit', sans-serif; 
-            background-image: url('1000071517.png'); /* เปลี่ยนรูปตึกมึงตรงนี้ */
+            background-image: url('1000071517.png'); /* เปลี่ยนรูปตึกตรงนี้ */
             background-size: cover;
             background-position: center bottom; 
             background-repeat: no-repeat;
@@ -33,6 +33,21 @@
         #loading-overlay { position: absolute; inset: 0; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; transition: opacity 0.5s; }
         .spinner { width: 40px; height: 40px; border: 4px solid #ffffff33; border-top: 4px solid #ff007f; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 💥 ข้อความเริ่มเกมกลางจอ 💥 */
+        #center-title {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            color: white;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 0 0 40px #ff007f, 0 0 15px #7c3aed;
+            z-index: 50;
+            pointer-events: none;
+            transition: opacity 1s ease-out; /* เอาไว้ทำเฟดตอนคำเข้า */
+        }
         
         #countdown-display {
             position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
@@ -55,6 +70,9 @@
     
     <div id="bg-overlay"></div> 
     
+    <!-- ข้อความกลางจอก่อนเริ่ม -->
+    <div id="center-title">อาชีพในฝันของ<br>เด็ก Gen Z LA</div>
+    
     <div id="countdown-display">5</div>
     <div id="status-txt">Offline</div>
 
@@ -75,16 +93,17 @@
   appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
 };
 
-        let WORD_LIST = ["ความฝัน", "อนาคต", "ความหวัง", "ความสุข"]; 
+        let WORD_LIST = []; // เริ่มต้นแบบว่างเปล่าสุดๆ ไม่มีคำอะไรเลย
+        let particlesSpawned = false; // ตัวเช็คว่าเราเสกคำหรือยัง
         const START_PARTICLES = 300;
         const MAX_PARTICLES = 3000; 
         const HOT_PINK_RGB = { r: 255, g: 105, b: 180 };
 
-        // 💡 เปลี่ยน URL เสียง Loop ของพลุตรงนี้ 💡
+        // 💡 เปลี่ยน URL เสียง ตรงนี้ 💡
         const AUDIO_FILES = {
             assemble: 'https://actions.google.com/sounds/v1/science_fiction/stutter_bass_hit.ogg',
             firework: 'https://actions.google.com/sounds/v1/explosions/clank_clatter_explosion.ogg',
-            firework_loop: 'ใส่_LINK_MP3_เสียงพลุ_วนลูปตรงนี้.mp3' // <--- แปะตรงนี้เลยเพื่อน
+            firework_loop: 'ใส่_LINK_MP3_เสียงพลุ_วนลูปตรงนี้.mp3'
         };
 
         let app, particleContainer, fwContainer;
@@ -170,50 +189,53 @@
             }
         }
 
-        // 💥 ระบบเปลี่ยนคำที่ปลอดภัย ดุดัน และรับประกันว่าออกครบทุกคำ
+        // 💥 ฟังก์ชันรับคำใหม่แบบสดๆ
         function applyNewWords(rawWordsArray) {
             if (!app || !app.renderer) return;
 
             let processedWords = [];
-            // ถ้าแอดมินเผลอส่งมาเป็น String ก้อนเดียว จับยัดใส่ Array ซะ
             let rawArray = Array.isArray(rawWordsArray) ? rawWordsArray : [rawWordsArray];
             
             rawArray.forEach(w => {
-                // หั่นคำแบบโหดๆ: เจอเว้นบรรทัด (\n), ขึ้นบรรทัดใหม่ (\r), Tab (\t), ลูกน้ำ (,), เซมิโคลอน (;), หรือขีด (|) จับหั่นหมด!
                 let splitParts = String(w).split(/[\r\n\t,;|]+/).map(s => s.trim()).filter(s => s.length > 0);
                 processedWords.push(...splitParts);
             });
             
-            // ลบคำซ้ำออก เพื่อความเร็วในการเรนเดอร์ (เด็กๆ มักพิมพ์คำเดียวกันมาเยอะ)
             processedWords = [...new Set(processedWords)];
             
-            if(processedWords.length === 0) processedWords = ["รอรับความฝัน..."];
+            if(processedWords.length === 0) return; // ถ้าส่งมาเปล่าๆ ให้ข้ามไปเลย
+            
             WORD_LIST = processedWords;
-
             const oldTextures = [...cachedTextures]; 
             
-            // 2. สร้าง Texture ชุดใหม่
+            // สร้าง Texture ชุดใหม่
             cachedTextures = WORD_LIST.map(word => {
                 const text = new PIXI.Text(word, { fontFamily: 'Kanit', fontWeight: '900', fontSize: 24, fill: 0xFFFFFF });
                 return app.renderer.generateTexture(text);
             });
 
-            // 3. บังคับยัดคำให้พาร์ติเคิลแบบเรียงตัว (วนลูปหารเอาเศษ) รับประกันว่าแสดงครบทุกคำ 100%
-            if (particles.length > 0) {
-                // สลับลำดับคำนิดหน่อย เพื่อไม่ให้คำเดียวกันกระจุกตัวอยู่จุดเดียว
+            // 💥 ซ่อนคำว่า "อาชีพในฝัน..." กลางจอทิ้งไปเลย
+            const titleElem = document.getElementById('center-title');
+            if(titleElem) titleElem.style.opacity = '0';
+
+            // ถ้ายังไม่เคยเสกคำเลย ให้เสกตอนนี้!
+            if (!particlesSpawned) {
+                for(let i=0; i<START_PARTICLES; i++) {
+                    particles.push(createSingleParticle(Math.random() * app.screen.width, Math.random() * app.screen.height));
+                }
+                particlesSpawned = true; // จำไว้ว่าเสกแล้ว
+            } else {
+                // ถ้าเคยเสกแล้ว ก็แค่อัปเดตคำให้ตัวเก่า
                 let shuffledTextures = [...cachedTextures];
                 shuffleArray(shuffledTextures);
-
                 particles.forEach((p, index) => {
                     p.sprite.texture = shuffledTextures[index % shuffledTextures.length];
                 });
             }
 
-            // 4. ลบของเก่าทิ้งแบบหน่วงเวลา กันกระตุก
+            // เคลียร์เม็ม
             setTimeout(() => {
-                oldTextures.forEach(t => {
-                    try { t.destroy(true); } catch(e){}
-                });
+                oldTextures.forEach(t => { try { t.destroy(true); } catch(e){} });
             }, 500);
         }
 
@@ -237,12 +259,9 @@
             const heartText = new PIXI.Text('❤', { fontFamily: 'Arial', fontSize: 32, fill: 0xFFFFFF });
             heartTexCache = app.renderer.generateTexture(heartText);
 
-            applyNewWords(WORD_LIST);
             generateTargets();
             
-            for(let i=0; i<START_PARTICLES; i++) {
-                particles.push(createSingleParticle(Math.random() * app.screen.width, Math.random() * app.screen.height));
-            }
+            // 💥 เอาการสร้าง Particle ตอนเริ่มออกไปแล้ว ให้มันจอโล่งๆ ก่อน
 
             window.addEventListener('resize', () => { if(mode === 'ASSEMBLE') generateTargets(true); });
             app.ticker.add(update);
@@ -302,7 +321,7 @@
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             
-                            // 💥 เช็คและรับคำใหม่ทันทีที่ Admin กด Update
+                            // 💥 รับคำสั่งเปลี่ยนคำ
                             if (data.words && Array.isArray(data.words)) {
                                 let incomingJSON = JSON.stringify(data.words);
                                 // ป้องกันการโหลดซ้ำถ้าแอดมินส่งคำเดิมเป๊ะๆ
@@ -310,7 +329,6 @@
                                     lastReceivedWordsJSON = incomingJSON;
                                     applyNewWords(data.words);
                                     
-                                    // เด้งเตือนขวาล่างให้มั่นใจว่ารับคำแล้ว พร้อมบอกว่าหั่นออกมาได้กี่คำ
                                     const st = document.getElementById('status-txt');
                                     st.innerText = "🔥 ดึงมาโชว์แล้วทั้งหมด " + WORD_LIST.length + " คำรัวๆ!";
                                     st.style.color = "#22d3ee"; 
@@ -372,7 +390,7 @@
         }
 
         function createSingleParticle(x, y) {
-            if (cachedTextures.length === 0) return; 
+            if (cachedTextures.length === 0) return null; 
             
             const tex = cachedTextures[Math.floor(Math.random() * cachedTextures.length)];
             const sprite = new PIXI.Sprite(tex);
@@ -438,6 +456,15 @@
         }
 
         function startCountdown() {
+            // ดักไว้เผื่อแอดมินลืมกดยัดคำ ให้โชว์อย่างน้อย 1 คำก่อนเริ่ม
+            if(particles.length === 0) {
+                applyNewWords(["ความหวัง", "ความฝัน", "อนาคต"]);
+            }
+            
+            // ซ่อนข้อความตรงกลางอีกรอบเพื่อความชัวร์
+            const titleElem = document.getElementById('center-title');
+            if(titleElem) titleElem.style.opacity = '0';
+
             if(isAssembling) return;
             isAssembling = true;
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -470,7 +497,7 @@
             
             let wordsToShow = [];
             for(let i=0; i<totalShowcase; i++) {
-                wordsToShow.push(WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)]);
+                wordsToShow.push(WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)] || "LA");
             }
 
             const iv = setInterval(() => {
