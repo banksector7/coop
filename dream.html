@@ -85,13 +85,13 @@
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
         const firebaseConfig = {
-              apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
-              authDomain: "fireworks-d5460.firebaseapp.com",
-              projectId: "fireworks-d5460",
-              storageBucket: "fireworks-d5460.firebasestorage.app",
-              messagingSenderId: "663921177257",
-              appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
-            }; 
+          apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
+          authDomain: "fireworks-d5460.firebaseapp.com",
+          projectId: "fireworks-d5460",
+          storageBucket: "fireworks-d5460.firebasestorage.app",
+          messagingSenderId: "663921177257",
+          appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+        };
 
         let WORD_LIST = []; // เริ่มต้นแบบว่างเปล่าสุดๆ ไม่มีคำอะไรเลย
         let particlesSpawned = false; // ตัวเช็คว่าเราเสกคำหรือยัง
@@ -125,6 +125,7 @@
         // ตัวแปรเช็คการกดจากแอดมิน
         let lastTriggerValue = null; 
         let lastReceivedWordsJSON = "";
+        let isFirstLoad = true; // 💥 ดักไม่ให้ดึงค่าเก่าตอนเปิดจอ
 
         // --- ระบบเสียง ---
         let audioCtx;
@@ -321,11 +322,15 @@
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             
-                            // 💥 รับคำสั่งเปลี่ยนคำ
+                            // 💥 เช็คและรับคำใหม่ทันทีที่ Admin กด Update
                             if (data.words && Array.isArray(data.words)) {
                                 let incomingJSON = JSON.stringify(data.words);
-                                // ป้องกันการโหลดซ้ำถ้าแอดมินส่งคำเดิมเป๊ะๆ
-                                if (incomingJSON !== lastReceivedWordsJSON) {
+                                
+                                if (isFirstLoad) {
+                                    // เปิดจอครั้งแรก จำไว้เงียบๆ ไม่ต้องแสดงผล!
+                                    lastReceivedWordsJSON = incomingJSON;
+                                } else if (incomingJSON !== lastReceivedWordsJSON) {
+                                    // แอดมินเพิ่งกดยัดคำมาใหม่สดๆ ถึงจะโชว์
                                     lastReceivedWordsJSON = incomingJSON;
                                     applyNewWords(data.words);
                                     
@@ -341,13 +346,15 @@
 
                             // เช็คว่าเป็นคำสั่งนับถอยหลังจริงๆ
                             if (data.triggerAssemble) {
-                                if (lastTriggerValue === null) {
+                                if (isFirstLoad || lastTriggerValue === null) {
                                     lastTriggerValue = data.triggerAssemble;
                                 } else if (data.triggerAssemble !== lastTriggerValue) {
                                     lastTriggerValue = data.triggerAssemble;
                                     if(!isAssembling) startCountdown();
                                 }
                             }
+                            
+                            isFirstLoad = false; // ปิดสวิตช์โหลดครั้งแรก
                         }
                     });
                 }
