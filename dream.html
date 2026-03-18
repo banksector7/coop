@@ -59,7 +59,7 @@
         // ========================================================
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
-        //const manualConfig = null; // แปะ object { apiKey: "...", ... } ให้เหมือนไฟล์ admin.html
+        // ก๊อปปี้โค้ด const firebaseConfig = { ... }; ของมึงมาแปะทับบรรทัดนี้ได้เลย!
 
         const firebaseConfig = {
               apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
@@ -85,7 +85,7 @@
         let rockets = [];
         let fwParticles = [];
         let hearts = []; 
-        let showcaseTexts = []; // เก็บตัวอักษรตอนโชว์ซูม
+        let showcaseTexts = []; 
         
         let validTargets = [];
         let shakeAmount = 0;
@@ -169,7 +169,7 @@
             particleContainer = new PIXI.ParticleContainer(MAX_PARTICLES, { scale: true, position: true, tint: true });
             fwContainer = new PIXI.Container();
             app.stage.addChild(particleContainer);
-            app.stage.addChild(fwContainer); // พลุ/เอฟเฟกต์ให้อยู่บนสุด
+            app.stage.addChild(fwContainer); 
 
             const g = new PIXI.Graphics();
             g.beginFill(0xFFFFFF); g.drawCircle(0, 0, 4); g.endFill();
@@ -190,13 +190,13 @@
 
         // --- ตั้งค่า Firebase ---
         function initFirebase() {
-            let firebaseConfig = manualConfig;
-            if (!firebaseConfig) {
+            let config = firebaseConfig;
+            if (!config) {
                 const fConfigRaw = typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}';
-                try { firebaseConfig = JSON.parse(fConfigRaw); } catch(e){}
+                try { config = JSON.parse(fConfigRaw); } catch(e){}
             }
             
-            if(!firebaseConfig || !firebaseConfig.projectId) {
+            if(!config || !config.projectId) {
                 document.getElementById('status-txt').innerText = "Local Mode (No Cloud)";
                 document.getElementById('loading-overlay').style.opacity = '0';
                 setTimeout(() => document.getElementById('loading-overlay').remove(), 500);
@@ -204,16 +204,30 @@
                 return;
             }
 
-            const appFb = initializeApp(firebaseConfig);
+            const appFb = initializeApp(config);
             const auth = getAuth(appFb);
             const db = getFirestore(appFb);
             const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'la-assemble-app';
 
             const initAuth = async () => {
-                if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-                    await signInWithCustomToken(auth, window.__initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                try {
+                    if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+                        await signInWithCustomToken(auth, window.__initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.error("Auth Error:", err);
+                    const msgDiv = document.getElementById('load-msg');
+                    msgDiv.innerText = "❌ Firebase พัง (ลืมเปิด Anonymous Auth หรือเปล่า?)";
+                    msgDiv.style.color = "#ff4444";
+                    document.getElementById('status-txt').innerText = "Auth Error";
+                    
+                    setTimeout(() => {
+                        document.getElementById('loading-overlay').style.opacity = '0';
+                        setTimeout(() => document.getElementById('loading-overlay').remove(), 500);
+                        window.addEventListener('click', () => { if(!isAssembling) startCountdown(); });
+                    }, 3000);
                 }
             };
 
@@ -286,7 +300,7 @@
             sprite.anchor.set(0.5);
             
             const baseScale = (Math.random() * 1.5 + 2.5) / 24; 
-            sprite.scale.set(baseScale * 2.5); // เกิดมาตัวใหญ่ไว้ก่อน
+            sprite.scale.set(baseScale * 2.5); 
             
             const startColor = hslToHex(Math.random() * 360, 80, 70);
             sprite.tint = startColor;
@@ -366,17 +380,15 @@
                 } else {
                     clearInterval(iv);
                     cd.style.display = 'none';
-                    runShowcaseSequence(); // จบนับถอยหลัง ให้ซูมคำก่อนรวมร่าง
+                    runShowcaseSequence(); 
                 }
             }, 1000);
         }
 
-        // --- โชว์คำเด่นๆ 5 คำ ---
         function runShowcaseSequence() {
             let count = 0;
             const totalShowcase = 5;
             
-            // สุ่มคำมา 5 คำ
             let wordsToShow = [];
             for(let i=0; i<totalShowcase; i++) {
                 wordsToShow.push(WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)]);
@@ -385,17 +397,15 @@
             const iv = setInterval(() => {
                 if (count >= totalShowcase) {
                     clearInterval(iv);
-                    setTimeout(() => triggerBurst(), 400); // ดีเลย์นิดนึงก่อนระเบิดตูม
+                    setTimeout(() => triggerBurst(), 400); 
                     return;
                 }
 
-                // สร้าง Text ตัวเบ้อเริ่ม
                 const text = new PIXI.Text(wordsToShow[count], { 
                     fontFamily: 'Kanit', fontWeight: '900', fontSize: 100, fill: 0xFFFFFF,
                     dropShadow: true, dropShadowColor: '#ff007f', dropShadowBlur: 20, dropShadowDistance: 0 
                 });
                 text.anchor.set(0.5);
-                // สุ่มตำแหน่งให้อยู่แถวๆ กลางจอ
                 text.x = app.screen.width / 2 + (Math.random()-0.5) * 300;
                 text.y = app.screen.height / 2 + (Math.random()-0.5) * 200;
                 
@@ -404,12 +414,11 @@
                 
                 fwContainer.addChild(text);
                 
-                // เก็บไว้ไป animate ในฟังก์ชัน update
                 showcaseTexts.push({ sprite: text, life: 1.0, scale: 0.2 });
                 playSound('assemble', 0.4); 
                 
                 count++;
-            }, 450); // เด้งทุกๆ ครึ่งวิ
+            }, 450); 
         }
 
         function triggerBurst() {
@@ -441,11 +450,10 @@
                 app.stage.x = (Math.random() - 0.5) * shakeAmount; app.stage.y = (Math.random() - 0.5) * shakeAmount; shakeAmount *= 0.85;
             } else { app.stage.x = 0; app.stage.y = 0; }
 
-            // อนิเมชั่นคำ 5 คำที่ซูม
             for (let i = showcaseTexts.length - 1; i >= 0; i--) {
                 let st = showcaseTexts[i];
-                st.life -= 0.02 * delta; // ค่อยๆ จาง
-                st.scale += 0.06 * delta; // ค่อยๆ ซูมใหญ่ขึ้น
+                st.life -= 0.02 * delta; 
+                st.scale += 0.06 * delta; 
                 st.sprite.scale.set(st.scale);
                 st.sprite.alpha = st.life;
                 if (st.life <= 0) {
@@ -479,15 +487,11 @@
             }
 
             const slowSpring = 0.004; const slowFriction = 0.94; 
-            
-            // คุมขนาดฟอนต์ (ตัวแปรเป้าหมาย)
-            // ถ้า WANDER และยังไม่กดเริ่ม ให้ตัวใหญ่ๆ ไปเลย (คูณ 2.5) ถ้าไม่ใช่ให้หดกลับปกติ
             const targetModeScale = (mode === 'WANDER' && !isAssembling) ? 2.5 : 1.0;
 
             for (let i = 0; i < particles.length; i++) {
                 const p = particles[i];
                 
-                // ทำการสมูทสเกล (ค่อยๆ หดเล็กลง หรือขยายขึ้น)
                 const targetScale = p.baseScale * targetModeScale;
                 p.currentScale += (targetScale - p.currentScale) * 0.05 * delta;
                 p.sprite.scale.set(p.currentScale);
