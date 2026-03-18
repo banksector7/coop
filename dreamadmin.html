@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller - LA Assemble</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0f172a; color: white; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-700">
+        <h1 class="text-3xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+            LA Assemble Controller 🎛️
+        </h1>
+        <p class="text-slate-400 mb-6 text-sm flex items-center gap-2">
+            Status: <span id="auth-status" class="text-yellow-400">กำลังเชื่อมต่อ...</span>
+        </p>
+
+        <div class="space-y-6">
+            <!-- โซนใส่คำศัพท์ -->
+            <div>
+                <label class="block text-sm font-bold mb-2 text-slate-300">
+                    วางความฝันจาก Slido / Excel (เว้นบรรทัด หรือ คั่นด้วยลูกน้ำ)
+                </label>
+                <textarea id="words-input" rows="8" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all" placeholder="รวย&#10;ถูกหวย&#10;เรียนจบ&#10;นอนเต็มอิ่ม"></textarea>
+                
+                <button id="btn-update-words" class="mt-4 w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-colors flex justify-center items-center gap-2" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    อัปเดตคำขึ้นจอโปรเจคเตอร์
+                </button>
+                <p id="update-msg" class="text-green-400 text-sm mt-2 hidden text-center">อัปเดตคำเรียบร้อย!</p>
+            </div>
+
+            <hr class="border-slate-700">
+
+            <!-- โซนจุดระเบิด -->
+            <div>
+                <button id="btn-trigger" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-2xl py-6 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider" disabled>
+                    🚀 สั่งเริ่มนับถอยหลัง (Assemble!)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ตัวแปรเก็บ Firebase
+        let db, appId, userDoc;
+
+        function initFirebase() {
+            const fConfigRaw = typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}';
+            let firebaseConfig = {};
+            try { firebaseConfig = JSON.parse(fConfigRaw); } catch(e){}
+            
+            if(!firebaseConfig.projectId) {
+                document.getElementById('auth-status').innerText = "❌ ไม่พบการตั้งค่า Cloud";
+                document.getElementById('auth-status').className = "text-red-400";
+                return;
+            }
+
+            const appFb = initializeApp(firebaseConfig);
+            const auth = getAuth(appFb);
+            db = getFirestore(appFb);
+            appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'la-assemble-app';
+
+            const initAuth = async () => {
+                if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+                    await signInWithCustomToken(auth, window.__initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userDoc = user;
+                    document.getElementById('auth-status').innerText = "🟢 เชื่อมต่อระบบพร้อมลุย";
+                    document.getElementById('auth-status').className = "text-green-400";
+                    document.getElementById('btn-update-words').disabled = false;
+                    document.getElementById('btn-trigger').disabled = false;
+                }
+            });
+        }
+
+        // ฟังก์ชันอัปเดตคำ
+        document.getElementById('btn-update-words').addEventListener('click', async () => {
+            if(!db || !userDoc) return;
+            
+            const rawText = document.getElementById('words-input').value;
+            // แยกคำด้วย ลูกน้ำ หรือ การขึ้นบรรทัดใหม่
+            let words = rawText.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
+            
+            if(words.length === 0) {
+                alert("ใส่คำศัพท์ให้หน่อยสิ!");
+                return;
+            }
+
+            const btn = document.getElementById('btn-update-words');
+            btn.innerText = "กำลังอัปโหลด...";
+            btn.disabled = true;
+
+            try {
+                // เซฟลง Firestore
+                const controlDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'control', 'state');
+                await setDoc(controlDocRef, { words: words }, { merge: true });
+                
+                const msg = document.getElementById('update-msg');
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 3000);
+            } catch(e) {
+                console.error("Save Error:", e);
+                alert("เกิดข้อผิดพลาดในการเซฟ");
+            } finally {
+                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> อัปเดตคำขึ้นจอโปรเจคเตอร์`;
+                btn.disabled = false;
+            }
+        });
+
+        // ฟังก์ชันสั่งจุดระเบิด
+        document.getElementById('btn-trigger').addEventListener('click', async () => {
+            if(!db || !userDoc) return;
+            
+            if(!confirm('สั่ง Assemble ออกจอโปรเจคเตอร์เลยนะ? (กดยืนยันแล้วจะเริ่มนับถอยหลังทันที)')) return;
+
+            try {
+                const controlDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'control', 'state');
+                // ใช้ Date.now() เป็นตัวทริกเกอร์ให้มันค่าไม่ซ้ำ จอหลักจะได้รู้ว่ามีการกดใหม่
+                await setDoc(controlDocRef, { triggerAssemble: Date.now() }, { merge: true });
+            } catch(e) {
+                console.error("Trigger Error:", e);
+                alert("สั่งการไม่สำเร็จ");
+            }
+        });
+
+        initFirebase();
+    </script>
+</body>
+</html>
