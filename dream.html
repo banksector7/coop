@@ -98,16 +98,17 @@
 
         // ตัวแปรเช็คการกดจากแอดมิน
         let lastTriggerValue = null; 
+        let lastReceivedWordsJSON = "";
 
         // --- ระบบเสียง ---
         let audioCtx;
         let audioBuffers = {};
-        let bgmSource = null; // เก็บตัวเล่น loop เผื่อสั่งหยุด
+        let bgmSource = null; 
 
         async function loadSounds() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const loader = async (name, url) => {
-                if (url.includes('ใส่_LINK')) return; // ข้ามถ้ายังไม่ได้ใส่ลิ้งก์
+                if (url.includes('ใส่_LINK')) return; 
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -136,11 +137,11 @@
         function playLoopSound(name, volume = 0.5) {
             if (!audioBuffers[name] || !audioCtx) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (bgmSource) bgmSource.stop(); // หยุดของเก่าถ้ามี
+            if (bgmSource) bgmSource.stop(); 
             
             bgmSource = audioCtx.createBufferSource();
             bgmSource.buffer = audioBuffers[name];
-            bgmSource.loop = true; // ตั้งค่าให้เล่นวนลูป
+            bgmSource.loop = true; 
             const gainNode = audioCtx.createGain();
             gainNode.gain.value = volume;
             bgmSource.connect(gainNode);
@@ -162,28 +163,41 @@
             }
         }
 
-        // ระบบเปลี่ยนคำแบบปลอดภัย (สร้างใหม่ก่อน ค่อยลบของเก่า)
-        function applyNewWords(newWords) {
+        // 💥 ระบบเปลี่ยนคำที่ปลอดภัยและรับประกันว่าออกครบทุกคำ
+        function applyNewWords(rawWordsArray) {
             if (!app || !app.renderer) return;
 
-            const oldTextures = [...cachedTextures]; // จำของเก่าไว้ก่อน
-            WORD_LIST = newWords;
+            // 1. ดักจับพวกก๊อปจาก Excel (มันจะติด Tab \t หรือเว้นวรรคยาวๆ)
+            let processedWords = [];
+            rawWordsArray.forEach(w => {
+                // แยกด้วย ลูกน้ำ, ขึ้นบรรทัดใหม่, และ Tab
+                let splitParts = w.split(/[\t\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+                processedWords.push(...splitParts);
+            });
             
-            // 1. สร้าง Texture ใหม่เอี่ยม
+            if(processedWords.length === 0) processedWords = ["พิมพ์ความฝันสิ!"];
+            WORD_LIST = processedWords;
+
+            const oldTextures = [...cachedTextures]; 
+            
+            // 2. สร้าง Texture ชุดใหม่
             cachedTextures = WORD_LIST.map(word => {
                 const text = new PIXI.Text(word, { fontFamily: 'Kanit', fontWeight: '900', fontSize: 24, fill: 0xFFFFFF });
                 return app.renderer.generateTexture(text);
             });
 
-            // 2. จับยัดใส่ Particle ทุกตัวที่ลอยอยู่
+            // 3. บังคับยัดคำให้พาร์ติเคิลแบบเรียงตัว (วนลูปหารเอาเศษ) รับประกันว่าแสดงครบทุกคำ 100%
             if (particles.length > 0) {
-                particles.forEach(p => {
-                    const tex = cachedTextures[Math.floor(Math.random() * cachedTextures.length)];
-                    p.sprite.texture = tex;
+                // สลับลำดับคำนิดหน่อย เพื่อไม่ให้คำเดียวกันกระจุกตัวอยู่จุดเดียว
+                let shuffledTextures = [...cachedTextures];
+                shuffleArray(shuffledTextures);
+
+                particles.forEach((p, index) => {
+                    p.sprite.texture = shuffledTextures[index % shuffledTextures.length];
                 });
             }
 
-            // 3. หน่วงเวลาทำลาย Texture เก่าทิ้ง ป้องกันจอแวบ/แครช
+            // 4. ลบของเก่าทิ้งแบบหน่วงเวลา กันกระตุก
             setTimeout(() => {
                 oldTextures.forEach(t => {
                     try { t.destroy(true); } catch(e){}
@@ -211,7 +225,6 @@
             const heartText = new PIXI.Text('❤', { fontFamily: 'Arial', fontSize: 32, fill: 0xFFFFFF });
             heartTexCache = app.renderer.generateTexture(heartText);
 
-            // เจนตอนโหลดครั้งแรก
             applyNewWords(WORD_LIST);
             generateTargets();
             
@@ -277,29 +290,30 @@
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             
-                            // ถ้ามีคำสั่งเปลี่ยนคำ
-                            if (data.words && Array.isArray(data.words) && data.words.length > 0) {
-                                if(JSON.stringify(data.words) !== JSON.stringify(WORD_LIST)) {
+                            // 💥 เช็คและรับคำใหม่ทันทีที่ Admin กด Update
+                            if (data.words && Array.isArray(data.words)) {
+                                let incomingJSON = JSON.stringify(data.words);
+                                // ป้องกันการโหลดซ้ำถ้าแอดมินส่งคำเดิมเป๊ะๆ
+                                if (incomingJSON !== lastReceivedWordsJSON) {
+                                    lastReceivedWordsJSON = incomingJSON;
                                     applyNewWords(data.words);
                                     
-                                    // เด้งเตือนขวาล่างให้รู้ว่าคำเข้าแล้ว
+                                    // เด้งเตือนขวาล่างให้มั่นใจว่ารับคำแล้ว
                                     const st = document.getElementById('status-txt');
-                                    st.innerText = "✅ อัปเดตคำแล้ว (" + data.words.length + " คำ)";
-                                    st.style.color = "#22d3ee"; // สีฟ้าสว่าง
+                                    st.innerText = "🔥 อัปเดต " + WORD_LIST.length + " คำสดๆ ร้อนๆ!";
+                                    st.style.color = "#22d3ee"; 
                                     setTimeout(() => {
                                         st.innerText = "Cloud Connected 🟢";
-                                        st.style.color = "#4ade80"; // กลับเป็นสีเขียว
+                                        st.style.color = "#4ade80"; 
                                     }, 4000);
                                 }
                             }
 
-                            // เช็คว่าเป็นคำสั่งกดใหม่จริงๆ เท่านั้น
+                            // เช็คว่าเป็นคำสั่งนับถอยหลังจริงๆ
                             if (data.triggerAssemble) {
                                 if (lastTriggerValue === null) {
-                                    // โหลดครั้งแรก แค่จำไว้ ไม่ต้องระเบิด
                                     lastTriggerValue = data.triggerAssemble;
                                 } else if (data.triggerAssemble !== lastTriggerValue) {
-                                    // แอดมินกดปุ่มใหม่ ค่าเปลี่ยนไปแล้ว ลุย!
                                     lastTriggerValue = data.triggerAssemble;
                                     if(!isAssembling) startCountdown();
                                 }
@@ -346,7 +360,6 @@
         }
 
         function createSingleParticle(x, y) {
-            // ป้องกันแคชบัค
             if (cachedTextures.length === 0) return; 
             
             const tex = cachedTextures[Math.floor(Math.random() * cachedTextures.length)];
@@ -486,7 +499,6 @@
                 parent.vx = (Math.random() - 0.5) * 50; parent.vy = (Math.random() - 0.5) * 50;
                 for(let j=0; j < spawnPerParticle; j++) {
                     let p = createSingleParticle(parent.x, parent.y);
-                    // กันเหนียว ถ้าสร้างเสร็จแล้วหา texture ไม่เจอ ให้ข้ามไปก่อน
                     if(p) {
                         p.vx = (Math.random() - 0.5) * 50; p.vy = (Math.random() - 0.5) * 50;
                         newParticles.push(p);
@@ -501,7 +513,7 @@
             setTimeout(() => { 
                 mode = 'ASSEMBLE'; 
                 spawnRocket(); 
-                playLoopSound('firework_loop', 0.6); // เรียกใช้เสียงพลุวนลูปตรงนี้เลย
+                playLoopSound('firework_loop', 0.6); 
             }, 1200);
         }
 
