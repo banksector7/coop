@@ -17,7 +17,7 @@
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; 
             font-family: 'Kanit', sans-serif; 
-            background-color: #050505;
+            background-color: #050505; /* พื้นหลังดำตอนเริ่ม */
         }
 
         /* 🎬 โซน Video Background */
@@ -26,8 +26,10 @@
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             object-fit: cover; /* ให้วิดีโอคลุมเต็มหน้าจอพอดี */
-            z-index: -2; /* อยู่หลังสุด */
+            z-index: 0; /* 💥 แก้ให้อยู่เหนือพื้นดำ จะได้มองเห็น */
             pointer-events: none;
+            opacity: 0; /* 💥 ซ่อนไว้ก่อน จะโชว์ตอนรวมร่างเสร็จ */
+            transition: opacity 0.3s ease-in;
         }
 
         #bg-overlay {
@@ -76,8 +78,8 @@
     </style>
 </head>
 <body>
-    <!-- 💥 โซนวิดีโอ MP4 💥 -->
-    <video id="video-bg" autoplay muted loop playsinline>
+    <!-- 💥 โซนวิดีโอ MP4: ลบ autoplay ออกเพื่อรอคำสั่ง 💥 -->
+    <video id="video-bg" loop playsinline preload="auto">
         <source src="background.mp4" type="video/mp4">
     </video>
 
@@ -89,7 +91,7 @@
     <!-- กด 1 ทีเพื่อปลดบล็อกเสียง -->
     <div id="audio-unlocker">
         👆 คลิกที่หน้าจอ 1 ครั้ง<br>
-        <span style="font-size:1.5rem; color:#ff007f;">เพื่อเปิดระบบเสียงเตรียมพร้อม</span>
+        <span style="font-size:1.5rem; color:#ff007f;">เพื่อเปิดระบบเตรียมพร้อม</span>
     </div>
     
     <div id="bg-overlay"></div> 
@@ -109,13 +111,13 @@
         // ⚠️ ขั้นตอนสำคัญ: เอา Config จาก Firebase Console มาแปะที่นี่ ⚠️
         // ========================================================
         const firebaseConfig = {
-  apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
-  authDomain: "fireworks-d5460.firebaseapp.com",
-  projectId: "fireworks-d5460",
-  storageBucket: "fireworks-d5460.firebasestorage.app",
-  messagingSenderId: "663921177257",
-  appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
-};
+              apiKey: "AIzaSyALk3ZQ14UuoHmcN8NT8CinWN6Y49VgMuk",
+              authDomain: "fireworks-d5460.firebaseapp.com",
+              projectId: "fireworks-d5460",
+              storageBucket: "fireworks-d5460.firebasestorage.app",
+              messagingSenderId: "663921177257",
+              appId: "1:663921177257:web:f885d1bc8b8833c423efb8"
+        };
 
         let WORD_LIST = []; 
         let particlesSpawned = false; 
@@ -125,7 +127,6 @@
 
         const AUDIO_FILES = {
             assemble: 'https://actions.google.com/sounds/v1/science_fiction/stutter_bass_hit.ogg'
-            // เอาเสียงพลุออกละ ให้ไปใช้เสียงจากวิดีโอแทน
         };
 
         let app, particleContainer;
@@ -146,13 +147,22 @@
         let audioCtx;
         let audioBuffers = {};
 
-        // ปลดล็อกเสียงตอนคลิกจอ
+        // 💥 ปลดล็อกเสียงตอนคลิกจอ และสั่งเล่นวิดีโอ 1 ทีแล้วหยุด เพื่อหลอกเบราว์เซอร์ว่า user อนุญาตแล้ว 💥
         document.getElementById('audio-unlocker').addEventListener('click', function() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
             const vid = document.getElementById('video-bg');
-            if(vid) vid.play().catch(e => console.log("Video play error:", e));
+            if(vid) {
+                vid.muted = false;
+                let playPromise = vid.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        vid.pause();
+                        vid.currentTime = 0;
+                    }).catch(e => console.log("Video play error:", e));
+                }
+            }
             
             this.style.display = 'none';
         });
@@ -418,13 +428,6 @@
             isAssembling = true;
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
-            // 💥 เปิดเสียงและรีเซ็ตวิดีโอให้เล่นใหม่ตรงจังหวะนับถอยหลัง 💥
-            const vid = document.getElementById('video-bg');
-            if(vid) {
-                vid.muted = false;
-                vid.currentTime = 0;
-            }
-
             const cd = document.getElementById('countdown-display');
             cd.style.display = 'block';
             let count = 5;
@@ -474,7 +477,7 @@
                 const pinkPurples = [0xff007f, 0x7c3aed, 0xff1493, 0xd946ef, 0xf472b6];
                 text.tint = pinkPurples[Math.floor(Math.random() * pinkPurples.length)];
                 
-                app.stage.addChild(text); // วาดลง stage ตรงๆ เพราะลบ fwContainer ไปแล้ว
+                app.stage.addChild(text); 
                 
                 showcaseTexts.push({ sprite: text, life: 1.0, scale: 0.2 });
                 playSound('assemble', 0.4); 
@@ -511,8 +514,17 @@
             assignTargetsEvenly();
             mode = 'BURST'; shakeAmount = 20; 
             
+            // 💥 หน่วงเวลา 1200ms รอให้คำวิ่งมารวมร่างเสร็จ แล้วแสดงและเล่นคลิปวิดีโอพร้อมเปิดเสียงทันที!
             setTimeout(() => { 
                 mode = 'ASSEMBLE'; 
+                
+                const vid = document.getElementById('video-bg');
+                if(vid) {
+                    vid.style.opacity = '1'; // โชว์ภาพขึ้นมา
+                    vid.muted = false;       // เปิดเสียง
+                    vid.currentTime = 0;     // เล่นจากวิแรก
+                    vid.play().catch(e => console.log("Video play error:", e));
+                }
             }, 1200);
         }
 
