@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหาข้อมูลสหกิจศึกษา 2/2568</title>
+    <!-- ใช้ Tailwind CSS เพื่อความรวดเร็วและรองรับมือถือ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased pb-10">
+
+    <!-- ส่วนหัวและช่องค้นหา (Sticky ติดขอบจอบน) -->
+    <div class="sticky top-0 z-10 bg-white shadow-sm px-4 py-4 mb-4">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-xl font-semibold text-center text-blue-800 mb-3">📍 ข้อมูลสหกิจศึกษา 2/2568</h1>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all" 
+                    placeholder="พิมพ์ชื่อสถานที่, นักศึกษา หรือ อ.ที่ปรึกษา..."
+                >
+            </div>
+            <p id="resultCount" class="text-xs text-gray-500 text-center mt-2">กำลังโหลดข้อมูล...</p>
+        </div>
+    </div>
+
+    <!-- พื้นที่แสดงผลข้อมูล -->
+    <div class="max-w-2xl mx-auto px-4">
+        <div id="dataContainer" class="space-y-4">
+            <!-- การ์ดข้อมูลจะถูกแทรกที่นี่ด้วย JavaScript -->
+        </div>
+        
+        <!-- กรณีค้นหาไม่เจอ -->
+        <div id="noResult" class="hidden text-center py-10">
+            <p class="text-gray-500">🤷‍♂️ ไม่พบข้อมูลที่ค้นหา</p>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูลดิบที่แปลงจากตาราง
+        const rawData = [
+            { company: "Brunch Studio", students: ["ฉันฐพัฒธ์ ปิยสิทธิคุณ (อ.อุดมวิทย์)", "ธนพร อยู่เพ็ชร (อ.จิราภา)", "อาทิตยา เพ็ชรโชติ (อ.ปภาดา)"] },
+            { company: "Cheeze Looker Magazine", students: ["เกษมพร คูณนาเมือง (อ.ลัดดา)"] },
+            { company: "Club North Production and Studio", students: ["กนกนิภา วงศ์คำจันทร์ (อ.ลัดดา)", "กรวรรณ ทองคำ (อ.ลัดดา)", "ณัชญานนท์ แย้มแก้ว (อ.อุดมวิทย์)"] },
+            { company: "DESTINY CONTENT", students: ["อรุโณทัย คาดบัว (อ.ปภาดา)"] },
+            { company: "HD MEDIA STUDIO", students: ["ชุติพนธ์ สิงห์ใจมา (อ.อุดมวิทย์)"] },
+            { company: "Hug Gym เชียงใหม่", students: ["สิริวรรษ ศรีวิชัย (อ.ปภาดา)", "ธวัลรัตน์ บุญจันทร์ (อ.จิราภา)"] },
+            { company: "KTC", students: ["บุษกร อนันตสกุลวงศ์ (อ.ธนิยาภรณ์)"] },
+            { company: "Mango Studio Production", students: ["ปรัชญา ผลเนตร์ (อ.ธนิยาภรณ์)"] },
+            { company: "Nero Nails Studio", students: ["กมลลักษณ์ ฟักแก้ว (อ.ลัดดา)"] },
+            { company: "Ok Prop Wedding Planner", students: ["วรณัฏฐ์ จันทขันธ์ (อ.ณัฏฐพงษ์)", "หยาดทิพย์ ใหม่กันทะ (อ.ปภาดา)"] },
+            { company: "PPTV HD36", students: ["สกุลตลา เทพทองดี (อ.ณัฏฐพงษ์)"] },
+            { company: "The Swon Clinic", students: ["เทพพิทักษ์ นันตา (อ.จิราภา)", "ธีรกฤต สุริยะ (อ.ธนิยาภรณ์)"] },
+            { company: "Workpoint Entertainment", students: ["จิรัฐติกาล เทียมเมฆ (อ.อุดมวิทย์)", "จุฑาภัทร พ่วงปิ่น (อ.อุดมวิทย์)", "ญาโณบล พันธุ (อ.อุดมวิทย์)", "ณัฐนันท์ ธัญณะคุปต์ (อ.จิราภา)", "ตรีธารทิพย์ เจริญสันต์ (อ.จิราภา)", "พรรษรี ทองสุข (อ.สุรชัย)"] },
+            { company: "กฟผ. โรงไฟฟ้าแม่เมาะ", students: ["รชตวรรณ ไชยยานนท์ (อ.วีรินทร์ภัทร์)", "รวิศราลักษณ์ ทองเสงี่ยม (อ.วีรินทร์ภัทร์)", "รัฐพงษ์ กลิ่นน้ำหอม (อ.วีรินทร์ภัทร์)"] },
+            { company: "กำลังนิยม สตูดิโอ", students: ["ยศพัฒน์ ทิพย์จินดาชัยกุล (อ.วีรินทร์ภัทร์)", "รัชพณ กฤษนำพก (อ.วีรินทร์ภัทร์)"] },
+            { company: "คณะนิเทศศาสตร์ ม.ธุรกิจบัณฑิตย์", students: ["ภคมณ บุญซ้อน (อ.สุรชัย)"] },
+            { company: "จีนี่ เรคคอร์ด", students: ["รัชชานนท์ ช่างเหล็กปั้น (อ.วีรินทร์ภัทร์)"] },
+            { company: "เชียงใหม่ไนท์ซาฟารี", students: ["วันวิสาข์ พิมสาร (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. Besties World Entertainment", students: ["เกวลิน ขวาธิจักร (อ.ลัดดา)", "ณัฐภูมิ เสนานิคม (อ.จิราภา)"] },
+            { company: "บจก. Brite Panther", students: ["ปัญญาภรณ์ ย้อยแก้ว (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. Chua group", students: ["จิราพัชร เกษประทุม (อ.อุดมวิทย์)"] },
+            { company: "บจก. Codec Creation", students: ["เกตุญาดา กันยานะ (อ.ลัดดา)"] },
+            { company: "บจก. LUMERA (Thailand)", students: ["มณีกานต์ น้อยมณี (อ.วีรินทร์ภัทร์)", "อนัญญา ทำนา (อ.ปภาดา)"] },
+            { company: "บจก. Orifree", students: ["ปาริชาติ ภูดวงดาษ (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. RS LiveWell", students: ["รัชนิดา จันทโลน (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. Upster", students: ["ปภัสสร ใจสายสุด (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. ก้องภพเซาะรีวิว", students: ["ธีรภัทร์ ปาลี (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. กอริลล่า อีเว้นท์", students: ["พัทธ์จรรย์ธร สุขประเสริฐ (อ.สุรชัย)"] },
+            { company: "บจก. กันตนา โพสท์ โปรดักชั่น", students: ["ขวัญชนก มุมทอง (อ.ลัดดา)"] },
+            { company: "บจก. โกล แกรนด์เนสส์", students: ["อรรถพล จิตราศรี (อ.ปภาดา)", "อิทธิกร สายเดช (อ.ปภาดา)", "เอกกฤต เจริญรักษ์ (อ.ปภาดา)"] },
+            { company: "บจก. คนเก่ง มาร์เก็ตติ้ง", students: ["ยศสมลพร เผ่าพันธ์ศร (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. ครีเอท อีเว้นท์ แอนด์ เอ็กซิบิชั่น", students: ["สิรนาถ เพชรทอง (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. คิวบิก กรุ๊ป", students: ["พัทธ์ธีรา เอี่ยมผา (อ.สุรชัย)"] },
+            { company: "บจก. โค้ด ออน คลาวด์", students: ["รัชฎาพร ขานยา (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. จ๊อบพร้อมท์", students: ["สุวภัทร เหม็นชัย (อ.ปภาดา)"] },
+            { company: "บจก. จีดีเอช ห้าห้าเก้า", students: ["ดนุสรณ์ กึ่งสำโรง (อ.จิราภา)"] },
+            { company: "บจก. จีเอ็มเอ็ม แกรมมี่", students: ["กัณฐิกา พรประสิทธิ์ (อ.ลัดดา)", "ชญานิน เงินพุ่ม (อ.อุดมวิทย์)", "ชนัทกาญจน์ ยันทะวาย (อ.อุดมวิทย์)", "ณัฐนันทน์ ยอดคำ (อ.จิราภา)", "ณัฐพงษ์ บุญแล (อ.จิราภา)", "ชลภัทร์ รุ่งศรี (อ.อุดมวิทย์)"] },
+            { company: "บจก. จือปาก", students: ["พิษณุ แป้นทองคำ (อ.สุรชัย)"] },
+            { company: "บจก. ฉายแสง โปรดักชั่น", students: ["รุ้งนภา วงศ์ใต้ (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. ชิงไฉ่ คอสเมติก", students: ["วรินธร สุวนานนท์ (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. เซิร์จ บิสซิเนส โซลูชันส์", students: ["เปรมประภา ทรงสุข (หาชื่อในประกาศไม่เจอ)"] },
+            { company: "บจก. แซ่บหลาย โปรดักชั่น", students: ["เกียรติภูมิ จันทร์แก้ว (อ.ลัดดา)"] },
+            { company: "บจก. ณัฐกฤษ ซิสเต็ม แอนด์ เทคโนโลยี่", students: ["เจนจิรา ม่วงใหม (อ.อุดมวิทย์)"] },
+            { company: "บจก. ดีแอลซี โฟโต้ เซอร์วิส", students: ["ศิวกร กาญจนมุสิก (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. ตันบุญ (วันนิมมาน)", students: ["วชิระ ยุทธนาชัยกุล (อ.ณัฏฐพงษ์)", "สุธินันท์ กันทะสอน (อ.ปภาดา)"] },
+            { company: "บจก. ทริปเปิล วี บรอดคาสท์ (ไทยรัฐทีวี)", students: ["กฤษนัย คำแท่ง (อ.ลัดดา)", "ณิชาภัทร ยิ้มเอี่ยม (อ.จิราภา)", "ศราวุฒิ ทาระชัย (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. ทีวีพูล กรุ๊ป", students: ["ภัทรสุดา สอนศิลา (อ.สุรชัย)", "สุวนันท์ สุขเกิด (อ.ปภาดา)", "เสาวลักษณ์ เสนาะโสด (อ.ปภาดา)"] },
+            { company: "บจก. ทูทีทูพี (ประเทศไทย)", students: ["วิภารัตน์ ซุนันทา (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. เทรนด์ วีจี 3", students: ["ณฐพล ลือไชย (อ.อุดมวิทย์)"] },
+            { company: "บจก. เทีย มิวสิก", students: ["พิมพ์มาดา พงษ์พรต (อ.สุรชัย)", "พิรุฬห์ลักษณ์ เอียดมา (อ.สุรชัย)"] },
+            { company: "บจก. เธอทีน สตูดิโอ", students: ["จอมพล เชยชม (อ.ลัดดา)"] },
+            { company: "บจก. นะโม อินเตอร์ กรุ๊ป", students: ["ภัทรพล แสนภักดี (อ.สุรชัย)"] },
+            { company: "บจก. บ้านส้ม อาร์ตแอนด์ ดีไซน์", students: ["เจษฎาพร วิไลจารุวรรณ (อ.อุดมวิทย์)"] },
+            { company: "บจก. บิ๊ก ครีเอทีฟ", students: ["รัชชานันท์ กันทะวะ (อ.วีรินทร์ภัทร์)", "สุภัสสรา หางาม (อ.ปภาดา)"] },
+            { company: "บจก. บิทิชีโน (ประเทศไทย)", students: ["ศิริประภา ดรุณพันธ์ (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. พราวด์ ครีเอเตอร์", students: ["คุณานนต์ ภูเก้าล้วน (อ.ลัดดา)", "นภัสนันท์ ทองทรัพย์ (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. พรีเมียร์ ซูชิ", students: ["นวพลชัย อิ่มจำลอง (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. โพสต์ทูเดย์", students: ["นันท์นภัส กองกระวี (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. โฟร์โนล็อค", students: ["พีรพัฒน์ ดุสิตวิลาวัณย์ (อ.สุรชัย)"] },
+            { company: "บจก. ภาพดีทวีสุข", students: ["น้ำพระทัย มณีกร (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. มโน ทำดี", students: ["ภูบดินทร์ พงศ์อภิรักษ์ (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. มาม่า ซี เมอร์แชนไดซิ่ง", students: ["พรฐิตา บุญแจ้ง (อ.สุรชัย)"] },
+            { company: "บจก. มายา ดีเวลลอปเม้นท์", students: ["วริยา เสือน้อย (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. มารีน สเคป", students: ["รัชชานนท์ บุญสำรี (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. มิตรดี สตูดิโอ", students: ["สุชานันท์ ทองมา (อ.ปภาดา)"] },
+            { company: "บจก. มี มายด์ วาย", students: ["ธนาภรณ์ ชำนาญภูมิ (อ.จิราภา)"] },
+            { company: "บจก. มีสไตล์ แล็บส์", students: ["นับทอง ปวนสุข (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. เมโลดี้ ครูซเซส คอร์ปอเรชั่น", students: ["สรวิศ พลพิทักษ์ (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. แม่โจ้ ยูไนเต็ด", students: ["นนท์วรงค์ นภัสจีราโชค (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. แมส ดิจิทัล", students: ["บรมสิริกาญจน์ แก้วจักร (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. ยืนเดี่ยว", students: ["วนานนท์ เรืองรุ่ง (อ.ณัฏฐพงษ์)", "สบชัย วงศ์คำ (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. ยูซีไอ มีเดีย (สถานีฯ ตร.)", students: ["นิชานาถ บุญส่ง (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. ริชสไมล์", students: ["มัณฑิตา ศรีสุวรรณ (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. แรปเตอร์ โปรดักชั่น", students: ["ณัฐกร ปิ่นโตนด (อ.จิราภา)", "บุญญาพร ปันมา (อ.ธนิยาภรณ์)", "ปิยวัช ไกรสินธุ์ (อ.สุรชัย)"] },
+            { company: "บจก. วัน สามสิบเอ็ด", students: ["จารุมณี พรมลา (อ.อุดมวิทย์)", "พรชิตา บุญเรือง (อ.สุรชัย)"] },
+            { company: "บจก. วันนี้วันดี", students: ["วงศ์วริศ เกียรติพงสา (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. สเปซเน็กซ์", students: ["กฤตจุทา นราชิตธนวัตร (อ.ลัดดา)"] },
+            { company: "บจก. ส้มหล่น โปรดักชั่น", students: ["ปิยฉัตร จันทร์สม (อ.สุรชัย)"] },
+            { company: "บจก. สยามพิฆเนศ", students: ["ชมพูนุท บุญธรรมเจริญ (อ.อุดมวิทย์)", "ชวิศา สุขกากิจ (อ.อุดมวิทย์)"] },
+            { company: "บจก. สรรพสินค้าเซ็นทรัล", students: ["กชกร คุณา (อ.ลัดดา)", "ณัฐวดี จันทนา (อ.จิราภา)"] },
+            { company: "บจก. สวยรับทรัพย์", students: ["รัตนพงษ์ เขื่อนแก้ว (อ.วีรินทร์ภัทร์)"] },
+            { company: "บจก. อทิสเมด โกลบอล", students: ["กรวรรณ มีเลี้ยง (อ.ลัดดา)", "สุชานาฏ ไชยชมภู (อ.ปภาดา)"] },
+            { company: "บมจ. อสมท", students: ["ดาวจิตรา จำปาบุรี (อ.จิราภา)"] },
+            { company: "บจก. ออล์โซล์ อินเตอร์เนชั่นแนล", students: ["อชิตพล ศองคอน (อ.ปภาดา)"] },
+            { company: "บจก. อาร์ทโฮมกรุ๊ป", students: ["ปิยธิดา ไชยเลิศ (หาชื่อในประกาศไม่เจอ)"] },
+            { company: "บจก. อินดิเพนเด้นท์ อาร์ทิสท์ เมเนจเม้นท์", students: ["ศุภวิชญ์ กาญจนสุขเมฆิน (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. อินเทรนด์ เอนเตอร์เทนเมนท์", students: ["พนาดล ยังเปา (อ.สุรชัย)", "พรรณภษา ตุ้ยเตียม (อ.สุรชัย)"] },
+            { company: "บจก. อี.เค.เอส กรุ๊ป", students: ["เจนนิษฐ์ เจนนิฌพัฒน์ (อ.อุดมวิทย์)"] },
+            { company: "บจก. เอนเตอเทนเมนท์ 29", students: ["พิชญากานต์ เศรษฐพัฒน์กิจ (หาชื่อในประกาศไม่เจอ)"] },
+            { company: "บจก. เอฟโวลูชั่นสกิน", students: ["ศรัณยภัทร ธรรมมิยะ (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. เอฟอาร์ที เอนเตอร์เทนเมนท์", students: ["รินรดา มงคล (อ.วีรินทร์ภัทร์)"] },
+            { company: "บมจ. เอส เอฟ คอร์ปอเรชั่น", students: ["ณัฐกฤตา ปราณสุข (อ.จิราภา)"] },
+            { company: "บจก. แอบโซลูท บิวตี้ คลินิก", students: ["นันท์นลิน ศักดิ์ดวง (อ.ธนิยาภรณ์)"] },
+            { company: "บจก. แอสเซนเดอร์", students: ["ทรงพล สุทธิประภา (อ.จิราภา)"] },
+            { company: "บจก. ไอดอลแฟคทอรี่", students: ["สลิลทิพย์ ชั้นงาม (อ.ณัฏฐพงษ์)"] },
+            { company: "บจก. ไฮเฟน พลัส", students: ["ณิชา อาจองกู่ (อ.จิราภา)"] },
+            { company: "เพจ doogunyoung (บจก. เรนเมกเกอร์ฯ)", students: ["กิตติญา เพชรยอด (อ.ลัดดา)"] },
+            { company: "มูลนิธิเครือข่ายพัฒนาบ้านเด็ก", students: ["รมิตา ลิมทวีสมเกียรติ (อ.วีรินทร์ภัทร์)"] },
+            { company: "รายการ Club After Class", students: ["มนัสนันท์ จันทร์พิทักษ์ (อ.วีรินทร์ภัทร์)"] },
+            { company: "รายการแฉ", students: ["พงศธร กัลยานุกูล (อ.สุรชัย)"] },
+            { company: "โรงแรมพับบลิคเฮ้าส์", students: ["ณัฐวุฒิ พืชกมุทร์ (อ.จิราภา)"] },
+            { company: "ศูนย์การค้ามาร์เก็ตวิลเลจ สุวรรณภูมิ", students: ["อภิญญา ปานแดง (อ.ปภาดา)"] },
+            { company: "สถานีวิทยุ COOLISM", students: ["ชนนิกานต์ เป็งเส้า (อ.อุดมวิทย์)"] },
+            { company: "สถานีวิทยุโทรทัศน์แห่งประเทศไทย จ.พิษณุโลก", students: ["พัชรพร โคตรเพชร (อ.สุรชัย)"] },
+            { company: "สมาคมฟ้าสีรุ้งแห่งประเทศไทย ภูมิภาคล้านนา", students: ["ณัฐสิทธิ์ ธรรมมา (อ.จิราภา)"] },
+            { company: "ส่วนบริหารกิจการโทรทัศน์ ภาคเหนือ จ.เชียงใหม่", students: ["กิตตินันท์ ศิลปิกุล (อ.ลัดดา)", "วิษณุ พงษ์พัฒณ์ (อ.ณัฏฐพงษ์)"] },
+            { company: "สำนักงานประชาสัมพันธ์จังหวัดสุพรรณบุรี", students: ["ธนวัฒน์ แสงจิตต์พันธุ์ (อ.จิราภา)"] },
+            { company: "สำนักงานเลขาธิการสภาผู้แทนราษฎร", students: ["รัตนพร ว่องไว (อ.วีรินทร์ภัทร์)"] },
+            { company: "สำนักงานสรรพากรพื้นที่อุดรธานี", students: ["จุฑามาศ หอมรอด (อ.อุดมวิทย์)"] },
+            { company: "สื่อออนไลน์ SUM UP ในเครือช่อง One 31", students: ["พิมพ์นิภา สระทองบุญ (อ.สุรชัย)"] },
+            { company: "องค์การบริหารส่วนตำบลท่าฉนวน", students: ["ณัฏฐา ขังทัด (อ.จิราภา)"] }
+        ];
+
+        const container = document.getElementById('dataContainer');
+        const searchInput = document.getElementById('searchInput');
+        const noResult = document.getElementById('noResult');
+        const resultCount = document.getElementById('resultCount');
+
+        // ฟังก์ชันสร้างการ์ด HTML
+        function renderCards(data) {
+            container.innerHTML = '';
+            
+            if(data.length === 0) {
+                noResult.classList.remove('hidden');
+                resultCount.textContent = `พบ 0 รายการ`;
+                return;
+            }
+            
+            noResult.classList.add('hidden');
+            
+            // นับจำนวนนศ.ทั้งหมดที่แสดง
+            let totalStudents = 0;
+
+            data.forEach(item => {
+                totalStudents += item.students.length;
+                
+                // สร้างกล่องหลัก (Card)
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow";
+                
+                // หัวข้อบริษัท + Badge จำนวน
+                const header = document.createElement('div');
+                header.className = "flex justify-between items-start mb-3 border-b border-gray-100 pb-3";
+                header.innerHTML = `
+                    <h2 class="text-base font-semibold text-blue-900 pr-2">${item.company}</h2>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ${item.students.length} คน
+                    </span>
+                `;
+                
+                // รายการนักศึกษา
+                const list = document.createElement('ul');
+                list.className = "space-y-2";
+                
+                item.students.forEach(student => {
+                    const li = document.createElement('li');
+                    li.className = "text-sm text-gray-700 flex items-start";
+                    li.innerHTML = `
+                        <span class="text-blue-400 mr-2 mt-0.5">•</span>
+                        <span>${student}</span>
+                    `;
+                    list.appendChild(li);
+                });
+
+                card.appendChild(header);
+                card.appendChild(list);
+                container.appendChild(card);
+            });
+
+            resultCount.textContent = `พบ ${data.length} สถานประกอบการ (${totalStudents} คน)`;
+        }
+
+        // โหลดข้อมูลครั้งแรก
+        renderCards(rawData);
+
+        // ระบบค้นหา (ทำงานทันทีที่พิมพ์)
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            
+            const filteredData = rawData.filter(item => {
+                // หาในชื่อบริษัท
+                if(item.company.toLowerCase().includes(keyword)) return true;
+                
+                // หาในรายชื่อนักศึกษา หรือ อาจารย์
+                const foundInStudents = item.students.some(student => 
+                    student.toLowerCase().includes(keyword)
+                );
+                
+                return foundInStudents;
+            });
+            
+            renderCards(filteredData);
+        });
+    </script>
+</body>
+</html>
