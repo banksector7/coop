@@ -151,7 +151,6 @@
                     <span class="badge absolute top-5 left-5 text-[10px] font-black px-2.5 py-1 rounded-lg bg-slate-950 text-slate-500 transition-colors">${s.id}</span>
                     <i class="fa-solid ${s.icon} text-4xl md:text-5xl lg:text-6xl ${s.color} transition-transform group-active:scale-90"></i>
                     <span class="label font-black text-xs md:text-sm uppercase tracking-[0.15em] text-slate-400 transition-colors">${s.label}</span>
-                    <span class="hint hidden absolute bottom-2 text-[8px] font-bold text-amber-500 animate-pulse">TAP AGAIN!</span>
                 `;
                 btn.addEventListener('pointerdown', (e) => handleInteraction(e, 'play', s.id));
                 gridContainer.appendChild(btn);
@@ -279,7 +278,13 @@
         }
 
         function stopAll() {
-            activeSources.forEach(s => { try { s.source.stop(); } catch(e){} });
+            activeSources.forEach(s => { 
+                try { 
+                    s.source.stop(); 
+                    s.source.disconnect(); // ตัดการเชื่อมต่อ node ชัวร์ๆ
+                    if (s.gain) s.gain.disconnect();
+                } catch(e){} 
+            });
             activeSources = [];
         }
 
@@ -300,25 +305,8 @@
         }
 
         function handleInteraction(e, action, keyId = null) {
-            const now = Date.now();
-            const isTouch = e.pointerType === 'touch' || e.type.includes('touch');
-            
-            if (!isTouch) { sendCommand(action, keyId); return; }
-            
-            if (action === 'play') {
-                const timeDiff = now - lastTap.time;
-                if (lastTap.id === keyId && timeDiff < 400) {
-                    sendCommand(action, keyId);
-                    lastTap = { id: null, time: 0 };
-                    clearShakeUI(keyId);
-                } else {
-                    lastTap = { id: keyId, time: now };
-                    showShakeUI(keyId);
-                    setTimeout(() => clearShakeUI(keyId), 400);
-                }
-            } else { 
-                sendCommand(action, keyId); 
-            }
+            if (e) e.preventDefault(); // ป้องกัน Event รวนบนมือถือ
+            sendCommand(action, keyId); // กดปุ๊บส่งปั๊บ ตัดระบบกดเบิ้ลออก
         }
 
         async function initFirebase() {
@@ -358,9 +346,12 @@
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 5000));
-                        if (isNewCommand && change.doc.id !== lastProcessedCmdId) {
-                            lastProcessedCmdId = change.doc.id;
+                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 2000));
+                        
+                        // 🛑 ป้องกันเครื่องตัวเองเล่นเบิ้ล: ถ้าเป็นคนส่งคำสั่งเอง ให้ข้ามไปเลย
+                        if (currentUser && data.sender === currentUser.uid) return;
+
+                        if (isNewCommand) {
                             executeCommand(data.action, data.keyId, data.value);
                         }
                     }
@@ -436,22 +427,6 @@
             if(!el) return;
             el.classList.add('btn-active');
             setTimeout(() => el.classList.remove('btn-active'), 150);
-        }
-
-        function showShakeUI(id) {
-            const el = document.querySelector(`.sound-btn[data-id="${id}"]`);
-            if(!el) return;
-            el.classList.add('shake-hint');
-            const hint = el.querySelector('.hint');
-            if(hint) hint.classList.remove('hidden');
-        }
-
-        function clearShakeUI(id) {
-            const el = document.querySelector(`.sound-btn[data-id="${id}"]`);
-            if(!el) return;
-            el.classList.remove('shake-hint');
-            const hint = el.querySelector('.hint');
-            if(hint) hint.classList.add('hidden');
         }
 
         buildGrid();
