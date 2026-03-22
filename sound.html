@@ -33,7 +33,7 @@
             <div id="loading-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
         </div>
         <p id="loading-text" class="font-mono text-emerald-400">0%</p>
-        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ระบบจะใช้เสียงสังเคราะห์แทนถ้าหาไฟล์ไม่เจอ)</p>
+        <p class="text-slate-500 text-sm mt-4 text-center px-4">(ระบบใหม่ HTML5 Audio - กันเสียงซ้อน 100%)</p>
         <button id="btn-start" class="mt-8 hidden bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-emerald-500/30 transition-all active:scale-95">
             เข้าสู่ระบบควบคุม (START)
         </button>
@@ -113,14 +113,14 @@
         let appMode = 'speaker'; 
         let currentVolume = 1.0;
         let isMuted = false;
-        let lastTap = { id: null, time: 0 };
         let currentUser = null;
         let startTime = Date.now();
-        let lastProcessedCmdId = null;
-        let audioCtx = null;
-        let audioBuffers = {}; 
-        let activeSources = []; // เก็บเป็น Object { source, gain } เพื่อให้หรี่เสียงได้
+        let lastProcessedTimestamp = Date.now(); // ดักเวลาชัวร์ๆ
         let blockInteraction = false; // ตัวแปรล็อคปุ่มกันนิ้วลั่นเบิ้ล
+
+        // 🛑 โละ AudioContext ทิ้ง ใช้ HTML5 Audio แท้ๆ 100% 🛑
+        const audioPlayers = {}; 
+        let fadeInterval = null;
 
         const manualConfig = {  
             apiKey: "AIzaSyCMZAqnQ-ESuC3YGGnRY0obesoKJgwfcfs",  
@@ -204,120 +204,116 @@
             };
         }
 
-        async function initAudioSystem() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
+        // ระบบโหลดเสียงแบบ HTML5 Audio
+        function initAudioSystem() {
             let loaded = 0;
             
-            for (const item of SOUNDS) {
-                try {
-                    // ดักแคชขั้นสุด ไม่ให้เบราว์เซอร์จำอะไรทั้งนั้น
-                    const res = await fetch(`./${item.file}?t=${Date.now()}`, { 
-                        cache: "no-store",
-                        headers: { 
-                            'Cache-Control': 'no-cache, no-store, must-revalidate',
-                            'Pragma': 'no-cache',
-                            'Expires': '0'
-                        }
-                    });
-                    if (!res.ok) throw new Error('404');
-                    const arrayBuffer = await res.arrayBuffer();
-                    audioBuffers[item.id] = await audioCtx.decodeAudioData(arrayBuffer);
-                } catch (err) {
-                    audioBuffers[item.id] = null; // ถ้าไฟล์หาย จะปล่อยว่างไปเลย ไม่สังเคราะห์เสียงบี๊บแล้ว
-                }
+            SOUNDS.forEach(item => {
+                // โหลดไฟล์ยัดใส่ object ตรงๆ เลย 1 ไฟล์ต่อ 1 ตัวเล่น
+                const audio = new Audio(`./${item.file}?t=${Date.now()}`);
+                audio.preload = "auto";
+                audioPlayers[item.id] = audio;
+                
                 loaded++;
                 const p = Math.round((loaded / SOUNDS.length) * 100);
                 document.getElementById('loading-bar').style.width = `${p}%`;
                 document.getElementById('loading-text').innerText = `${p}%`;
-            }
+            });
+
             document.getElementById('loading-text').innerText = "✅ READY!";
             btnStart.classList.remove('hidden');
+            
             btnStart.onclick = () => {
-                if(audioCtx.state === 'suspended') audioCtx.resume();
+                // ปลดล็อคระบบเสียงบนมือถือ (ให้มันเล่นเงียบๆ 1 ทีก่อน)
+                Object.values(audioPlayers).forEach(a => {
+                    a.volume = 0;
+                    a.play().then(() => { 
+                        a.pause(); 
+                        a.currentTime = 0; 
+                        a.volume = currentVolume; 
+                    }).catch(e => {}); // ช่างมันถ้า error
+                });
+
                 loadingScreen.classList.add('opacity-0', 'pointer-events-none');
                 mainUi.classList.remove('opacity-0', 'pointer-events-none');
                 startTime = Date.now(); 
+                lastProcessedTimestamp = Date.now(); // เริ่มนับเวลาใหม่
             };
         }
 
         function playSound(id) {
-            if (appMode === 'remote' || !audioCtx) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (appMode === 'remote') return;
             
-            // หยุดเสียงเก่าทั้งหมดก่อนเริ่มเสียงใหม่ จะได้ไม่ตีกันมั่ว
+            // 🛑 หยุดทุกอย่างแบบเด็ดขาด 🛑
             stopAll();
             
-            if (audioBuffers[id]) {
-                const source = audioCtx.createBufferSource();
-                source.buffer = audioBuffers[id];
-                const gain = audioCtx.createGain();
-                gain.gain.value = isMuted ? 0 : currentVolume;
-                
-                source.connect(gain);
-                gain.connect(audioCtx.destination);
-                source.start(0);
-                
-                const soundObj = { source, gain };
-                activeSources.push(soundObj);
-                source.onended = () => { activeSources = activeSources.filter(s => s !== soundObj); };
+            // เล่นตัวใหม่
+            const audio = audioPlayers[id];
+            if (audio) {
+                audio.volume = isMuted ? 0 : currentVolume;
+                audio.currentTime = 0; // กลับไปเริ่มวิที่ 0
+                audio.play().catch(e => console.error("Play Error:", e));
             }
             flashUI(id);
         }
 
-        function playSynthBeep(id) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            const soundConfig = SOUNDS.find(s => s.id === id);
-            const freq = soundConfig ? soundConfig.freq : 440;
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            const targetVol = isMuted ? 0 : currentVolume * 0.1;
-            gain.gain.setValueAtTime(targetVol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.5);
-        }
-
         function stopAll() {
-            activeSources.forEach(s => { 
-                try { 
-                    s.source.stop(); 
-                    s.source.disconnect(); // ตัดการเชื่อมต่อ node ชัวร์ๆ
-                    if (s.gain) s.gain.disconnect();
-                } catch(e){} 
+            // หยุดการลดเสียง Fade Out ก่อน
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+            }
+            // สั่ง Pause และ รีเซ็ตเวลาทุกเครื่อง
+            Object.values(audioPlayers).forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
             });
-            activeSources = [];
         }
 
-        // ฟังก์ชัน Fade Out 3 วินาที
         function fadeOutAll() {
-            if (appMode === 'remote' || !audioCtx) return;
-            const now = audioCtx.currentTime;
+            if (appMode === 'remote') return;
+            if (fadeInterval) clearInterval(fadeInterval);
+
+            // หาดูว่าตัวไหนกำลังเล่นอยู่บ้าง (ปกติจะเล่นทีละตัวอยู่แล้ว)
+            const playingAudios = Object.values(audioPlayers).filter(a => !a.paused && a.currentTime > 0);
             
-            activeSources.forEach(s => {
-                try {
-                    // ล็อกค่า gain ปัจจุบัน แล้วสั่งให้ค่อยๆ ลดเหลือ 0 ภายใน 3 วิ
-                    s.gain.gain.setValueAtTime(s.gain.gain.value, now);
-                    s.gain.gain.linearRampToValueAtTime(0.001, now + 3);
-                    // สั่งหยุดไฟล์หลัง 3 วิ
-                    setTimeout(() => { try { s.source.stop(); } catch(e){} }, 3000);
-                } catch(e){}
-            });
+            if (playingAudios.length === 0) return;
+
+            let steps = 30; // ลดเสียง 30 ระดับ ภายใน 3 วิ
+            let stepTime = 3000 / steps; // ประมาณ 100ms ต่อสเต็ป
+
+            fadeInterval = setInterval(() => {
+                let finished = true;
+                
+                playingAudios.forEach(audio => {
+                    let currentVol = audio.volume;
+                    let fadeStepAmount = currentVolume / steps; // ปริมาณเสียงที่ต้องลดต่อครั้ง
+
+                    if (currentVol > 0.05) {
+                        audio.volume = Math.max(0, currentVol - fadeStepAmount);
+                        finished = false;
+                    } else {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        audio.volume = currentVolume; // คืนค่าเสียงเดิมเตรียมไว้รอบหน้า
+                    }
+                });
+
+                if (finished) {
+                    clearInterval(fadeInterval);
+                    fadeInterval = null;
+                }
+            }, stepTime);
         }
 
         function handleInteraction(e, action, keyId = null) {
-            if (e) e.preventDefault(); // ป้องกัน Event รวนบนมือถือ
+            if (e) e.preventDefault(); 
             
-            if (blockInteraction) return; // 🛑 บล็อคถ้าคำสั่งมันส่งเบิ้ลมารัวๆ
+            if (blockInteraction) return; 
             blockInteraction = true;
-            setTimeout(() => blockInteraction = false, 150); // ล็อคปุ่มไว้ 0.15 วิ
+            setTimeout(() => blockInteraction = false, 150); // ล็อคปุ่มกันกดรัว
             
-            sendCommand(action, keyId); // กดปุ๊บส่งปั๊บ ตัดระบบกดเบิ้ลออก
+            sendCommand(action, keyId);
         }
 
         async function initFirebase() {
@@ -351,24 +347,20 @@
             }
         }
 
-        let isFirstSync = true;
-
         function listenToCloud() {
-            // เปลี่ยน collection หนีไปใช้ commands_v2 ตัดขาดจากพวกเครื่องเก่าที่เปิดค้างไว้
-            const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands_v2');
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands_v3'); // หนีไปห้อง v3 เลย
             onSnapshot(q, (snapshot) => {
-                if (isFirstSync) {
-                    isFirstSync = false;
-                    return; 
-                }
-
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
                         
-                        // 🛑 ป้องกันเครื่องตัวเองเล่นเบิ้ล: ถ้าเป็นคนส่งคำสั่งเอง ให้ข้ามไปเลย
+                        // 🛑 ถ้าเป็นคำสั่งเก่ากว่าเวลาที่เราเข้าเว็บ หรือเวลาล่าสุดที่รับคำสั่ง ให้เตะทิ้งทันที
+                        if (!data.sentAt || data.sentAt <= lastProcessedTimestamp) return;
+                        
+                        // 🛑 ป้องกันเครื่องตัวเองเล่นเบิ้ล
                         if (currentUser && data.sender === currentUser.uid) return;
 
+                        lastProcessedTimestamp = data.sentAt; // จำเวลาใหม่ไว้
                         executeCommand(data.action, data.keyId, data.value);
                     }
                 });
@@ -379,12 +371,14 @@
         }
 
         async function sendCommand(action, keyId = null, value = null) {
+            const now = Date.now();
+            lastProcessedTimestamp = now; // อัปเดตเวลาตัวเองด้วย
             executeCommand(action, keyId, value); 
+            
             if (currentUser && db) {
                 try {
-                    // ส่งข้อมูลเข้าห้องใหม่ commands_v2
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands_v2'), {
-                        action, keyId, value, sentAt: Date.now(), sender: currentUser.uid
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands_v3'), {
+                        action, keyId, value, sentAt: now, sender: currentUser.uid
                     });
                 } catch(e) { console.error(e); }
             }
@@ -407,11 +401,10 @@
         }
 
         function updateActiveVolumes() {
-            // อัปเดตเสียงที่กำลังเล่นอยู่ด้วย (Realtime)
-            if(!audioCtx) return;
             const targetVol = isMuted ? 0 : currentVolume;
-            activeSources.forEach(s => {
-                try { s.gain.gain.setValueAtTime(targetVol, audioCtx.currentTime); } catch(e){}
+            // เซ็ต volume ให้ทุกเครื่องเล่น
+            Object.values(audioPlayers).forEach(audio => {
+                audio.volume = targetVol;
             });
         }
 
