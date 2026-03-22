@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- ป้องกันเบราว์เซอร์จำ Cache เด็ดขาด -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <title>Soundboard PRO (Vanilla JS)</title>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         body { -webkit-tap-highlight-color: transparent; user-select: none; overflow-x: hidden; }
         .btn-active { transform: scale(0.92) !important; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important; border-color: #34d399 !important; background-color: #10b981 !important; }
@@ -44,6 +51,7 @@
             </div>
 
             <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-900/40 p-3 md:p-4 rounded-[2rem] border border-slate-800/50 shadow-2xl">
+                <!-- Mode Switch -->
                 <div class="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 w-full sm:w-auto">
                     <button id="btn-mode-speaker" class="flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all bg-emerald-500 text-white shadow-lg">SPEAKER</button>
                     <button id="btn-mode-remote" class="flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-300">REMOTE</button>
@@ -51,29 +59,36 @@
                 
                 <div class="hidden sm:block h-10 w-[1px] bg-slate-800 mx-1"></div>
                 
-                <div class="flex items-center gap-4 w-full sm:w-auto px-2">
+                <!-- Volume Controls (เปลี่ยนจาก Slider เป็นปุ่ม + / -) -->
+                <div class="flex items-center gap-3 w-full sm:w-auto px-2 justify-center">
                     <button id="btn-mute" class="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-slate-800 text-slate-400">
                         <i id="mute-icon" class="fa-solid fa-volume-high text-lg"></i>
                     </button>
-                    <div class="flex flex-col gap-1.5 flex-grow sm:w-40 md:w-56">
-                        <input id="slider-volume" type="range" min="0" max="1" step="0.05" value="1" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                        <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span class="text-slate-500">VOL</span>
-                            <span id="volume-text" class="text-emerald-500">100%</span>
+                    
+                    <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+                        <button id="btn-vol-down" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-xl hover:bg-slate-700 active:scale-90 transition-all text-white font-bold"><i class="fa-solid fa-minus"></i></button>
+                        <div class="w-14 text-center">
+                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-500 block">VOL</span>
+                            <span id="volume-text" class="text-xs font-black text-emerald-500 block mt-[-2px]">100%</span>
                         </div>
+                        <button id="btn-vol-up" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-xl hover:bg-slate-700 active:scale-90 transition-all text-white font-bold"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Sound Grid -->
         <div id="sound-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5 w-full"></div>
 
+        <!-- Bottom Controls -->
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 lg:relative lg:bg-transparent lg:border-none lg:p-0 lg:mt-6 w-full grid grid-cols-2 gap-4 z-40 max-w-6xl mx-auto">
-            <button id="btn-stop" class="bg-red-500/10 text-red-500 border-2 border-red-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
+            <button id="btn-stop" class="bg-red-500/10 text-red-500 border-2 border-red-500/30 rounded-[1.5rem] py-4 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
                 <i class="fa-solid fa-power-off text-lg md:text-2xl"></i> STOP
             </button>
-            <button id="btn-victory-bottom" class="bg-yellow-500/10 text-yellow-400 border-2 border-yellow-500/30 rounded-[1.5rem] py-5 md:py-6 font-black text-sm md:text-xl active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-trophy text-lg md:text-2xl"></i> VICTORY
+            <button id="btn-fadeout-bottom" class="bg-purple-500/10 text-purple-400 border-2 border-purple-500/30 rounded-[1.5rem] py-3 md:py-5 font-black text-sm md:text-xl transition-all shadow-xl flex flex-col items-center justify-center gap-0.5 select-none">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-volume-low text-lg md:text-2xl"></i> FADE OUT</div>
+                <span class="hint hidden text-[9px] font-bold text-amber-500 animate-pulse">TAP AGAIN TO FADE!</span>
+                <span class="text-[9px] text-purple-600/60 uppercase tracking-widest mt-1">Double Tap</span>
             </button>
         </div>
     </div>
@@ -83,16 +98,16 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- ตรงนี้แหละที่แก้ให้ตรงกับ 8 ไฟล์ในรูปมึง ---
+        // เรียง Array ใหม่ตามที่มึงสั่งเป๊ะๆ
         const SOUNDS = [
-            { id: '1', label: 'Ads', icon: 'fa-rectangle-ad', color: 'text-amber-400', file: 'Ads.mp3', freq: 440 },
-            { id: '2', label: 'Comedy', icon: 'fa-masks-theater', color: 'text-purple-400', file: 'comedy.wav', freq: 493 },
-            { id: '3', label: 'Correct', icon: 'fa-circle-check', color: 'text-emerald-400', file: 'correct.mp3', freq: 523 },
-            { id: '4', label: 'Drum', icon: 'fa-drum', color: 'text-red-400', file: 'drumcomedy.wav', freq: 587 },
-            { id: '5', label: 'Ending', icon: 'fa-flag-checkered', color: 'text-blue-400', file: 'ending.mp3', freq: 659 },
-            { id: '6', label: 'Incorrect', icon: 'fa-circle-xmark', color: 'text-orange-500', file: 'incorrect.mp3', freq: 698 },
-            { id: '7', label: 'Victory', icon: 'fa-trophy', color: 'text-yellow-400', file: 'victory.mp3', freq: 783 },
-            { id: '8', label: 'Wordcloud', icon: 'fa-cloud', color: 'text-sky-400', file: 'wordcloud.mp3', freq: 880 }
+            { id: '1', label: 'Wordcloud', icon: 'fa-cloud', color: 'text-sky-400', file: 'wordcloud.mp3', freq: 880 },
+            { id: '2', label: 'Wow', icon: 'fa-face-surprise', color: 'text-pink-400', file: 'wow.mp3', freq: 440 },
+            { id: '3', label: 'Do', icon: 'fa-circle-check', color: 'text-emerald-400', file: 'correct.mp3', freq: 523 },
+            { id: '4', label: 'Don\'t', icon: 'fa-circle-xmark', color: 'text-orange-500', file: 'incorrect.mp3', freq: 698 },
+            { id: '5', label: 'Comedy', icon: 'fa-masks-theater', color: 'text-purple-400', file: 'comedy.wav', freq: 493 },
+            { id: '6', label: 'Drum', icon: 'fa-drum', color: 'text-red-400', file: 'drumcomedy.wav', freq: 587 },
+            { id: '7', label: 'Welcome', icon: 'fa-handshake', color: 'text-teal-400', file: 'welcome.mp3', freq: 783 },
+            { id: '8', label: 'Ending', icon: 'fa-flag-checkered', color: 'text-blue-400', file: 'ending.mp3', freq: 659 }
         ];
         
         let appMode = 'speaker'; 
@@ -104,17 +119,16 @@
         let lastProcessedCmdId = null;
         let audioCtx = null;
         let audioBuffers = {}; 
-        let activeSources = [];
+        let activeSources = []; // เก็บเป็น Object { source, gain } เพื่อให้หรี่เสียงได้
 
-        // Config เดิมของมึง
-        const manualConfig = {
-              apiKey: "AIzaSyCMZAqnQ-ESuC3YGGnRY0obesoKJgwfcfs",
-                      authDomain: "soundboard-49d41.firebaseapp.com",
-                      projectId: "soundboard-49d41",
-                      storageBucket: "soundboard-49d41.firebasestorage.app",
-                      messagingSenderId: "985691644771",
-                      appId: "1:985691644771:web:49a41139fb4449a7a8e956"
-            };
+        const manualConfig = {  
+            apiKey: "AIzaSyCMZAqnQ-ESuC3YGGnRY0obesoKJgwfcfs",  
+            authDomain: "soundboard-49d41.firebaseapp.com",  
+            projectId: "soundboard-49d41",  
+            storageBucket: "soundboard-49d41.firebasestorage.app",  
+            messagingSenderId: "985691644771",  
+            appId: "1:985691644771:web:49a41139fb4449a7a8e956"
+        };
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-soundboard-pro';
@@ -144,29 +158,61 @@
             });
 
             document.getElementById('btn-stop').onclick = (e) => handleInteraction(e, 'stop');
-            // ผูกปุ่มล่างกับเสียง Victory (id: '7')
-            document.getElementById('btn-victory-bottom').onclick = (e) => handleInteraction(e, 'play', '7');
+            
+            // ปุ่ม Fadeout (ต้อง Double tap)
+            let fadeOutTapTime = 0;
+            const btnFade = document.getElementById('btn-fadeout-bottom');
+            btnFade.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                const now = Date.now();
+                if (now - fadeOutTapTime < 400) {
+                    sendCommand('fadeout');
+                    fadeOutTapTime = 0;
+                    btnFade.classList.remove('shake-hint');
+                    btnFade.querySelector('.hint').classList.add('hidden');
+                    btnFade.classList.add('btn-active');
+                    setTimeout(() => btnFade.classList.remove('btn-active'), 150);
+                } else {
+                    fadeOutTapTime = now;
+                    btnFade.classList.add('shake-hint');
+                    btnFade.querySelector('.hint').classList.remove('hidden');
+                    setTimeout(() => {
+                        btnFade.classList.remove('shake-hint');
+                        btnFade.querySelector('.hint').classList.add('hidden');
+                    }, 400);
+                }
+            });
+
             document.getElementById('btn-mode-speaker').onclick = () => setMode('speaker');
             document.getElementById('btn-mode-remote').onclick = () => setMode('remote');
+            
+            // อัปเดตผูกปุ่ม Volume
             document.getElementById('btn-mute').onclick = () => sendCommand('setMute', null, !isMuted);
-            document.getElementById('slider-volume').oninput = (e) => sendCommand('setVolume', null, parseFloat(e.target.value));
+            document.getElementById('btn-vol-down').onclick = () => {
+                let newVol = Math.max(0, currentVolume - 0.1);
+                sendCommand('setVolume', null, newVol);
+            };
+            document.getElementById('btn-vol-up').onclick = () => {
+                let newVol = Math.min(1, currentVolume + 0.1);
+                sendCommand('setVolume', null, newVol);
+            };
             
             document.onkeydown = (e) => {
                 if(e.repeat) return;
                 if(e.key >= '1' && e.key <= '8') sendCommand('play', e.key);
                 if(e.code === 'Space') { e.preventDefault(); sendCommand('stop'); }
-                if(e.code === 'Enter') { e.preventDefault(); sendCommand('play', '7'); } // Enter เล่น Victory
             };
         }
 
         async function initAudioSystem() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-            const allFiles = [...SOUNDS]; // โหลดเฉพาะ 8 ไฟล์ที่มี
             let loaded = 0;
-            for (const item of allFiles) {
+            
+            for (const item of SOUNDS) {
                 try {
-                    const res = await fetch(`./${item.file}`);
+                    // เติม ?t=Date.now() ดักแคชไม่ให้มันจำไฟล์เก่า
+                    const res = await fetch(`./${item.file}?t=${Date.now()}`, { cache: "no-store" });
                     if (!res.ok) throw new Error('404');
                     const arrayBuffer = await res.arrayBuffer();
                     audioBuffers[item.id] = await audioCtx.decodeAudioData(arrayBuffer);
@@ -174,7 +220,7 @@
                     audioBuffers[item.id] = null; 
                 }
                 loaded++;
-                const p = Math.round((loaded / allFiles.length) * 100);
+                const p = Math.round((loaded / SOUNDS.length) * 100);
                 document.getElementById('loading-bar').style.width = `${p}%`;
                 document.getElementById('loading-text').innerText = `${p}%`;
             }
@@ -191,16 +237,20 @@
         function playSound(id) {
             if (appMode === 'remote' || !audioCtx) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             if (audioBuffers[id]) {
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffers[id];
                 const gain = audioCtx.createGain();
                 gain.gain.value = isMuted ? 0 : currentVolume;
+                
                 source.connect(gain);
                 gain.connect(audioCtx.destination);
                 source.start(0);
-                activeSources.push(source);
-                source.onended = () => { activeSources = activeSources.filter(s => s !== source); };
+                
+                const soundObj = { source, gain };
+                activeSources.push(soundObj);
+                source.onended = () => { activeSources = activeSources.filter(s => s !== soundObj); };
             } else {
                 playSynthBeep(id);
             }
@@ -212,11 +262,13 @@
             const gain = audioCtx.createGain();
             const soundConfig = SOUNDS.find(s => s.id === id);
             const freq = soundConfig ? soundConfig.freq : 440;
+            
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             const targetVol = isMuted ? 0 : currentVolume * 0.1;
             gain.gain.setValueAtTime(targetVol, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+            
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
@@ -224,14 +276,32 @@
         }
 
         function stopAll() {
-            activeSources.forEach(s => { try { s.stop(); } catch(e){} });
+            activeSources.forEach(s => { try { s.source.stop(); } catch(e){} });
             activeSources = [];
+        }
+
+        // ฟังก์ชัน Fade Out 3 วินาที
+        function fadeOutAll() {
+            if (appMode === 'remote' || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            activeSources.forEach(s => {
+                try {
+                    // ล็อกค่า gain ปัจจุบัน แล้วสั่งให้ค่อยๆ ลดเหลือ 0 ภายใน 3 วิ
+                    s.gain.gain.setValueAtTime(s.gain.gain.value, now);
+                    s.gain.gain.linearRampToValueAtTime(0.001, now + 3);
+                    // สั่งหยุดไฟล์หลัง 3 วิ
+                    setTimeout(() => { try { s.source.stop(); } catch(e){} }, 3000);
+                } catch(e){}
+            });
         }
 
         function handleInteraction(e, action, keyId = null) {
             const now = Date.now();
             const isTouch = e.pointerType === 'touch' || e.type.includes('touch');
+            
             if (!isTouch) { sendCommand(action, keyId); return; }
+            
             if (action === 'play') {
                 const timeDiff = now - lastTap.time;
                 if (lastTap.id === keyId && timeDiff < 400) {
@@ -243,12 +313,14 @@
                     showShakeUI(keyId);
                     setTimeout(() => clearShakeUI(keyId), 400);
                 }
-            } else { sendCommand(action, keyId); }
+            } else { 
+                sendCommand(action, keyId); 
+            }
         }
 
         async function initFirebase() {
             if (!firebaseConfig) {
-                statusText.innerText = "❌ NO CONFIG - OFFLINE MODE (BYPASS ACTIVE)";
+                statusText.innerText = "❌ NO CONFIG - OFFLINE MODE";
                 statusText.classList.add('text-red-400');
                 return;
             }
@@ -256,8 +328,10 @@
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                
                 if (initialToken) { await signInWithCustomToken(auth, initialToken); } 
                 else { await signInAnonymously(auth); }
+                
                 onAuthStateChanged(auth, (u) => {
                     currentUser = u;
                     if (u) {
@@ -295,7 +369,7 @@
         }
 
         async function sendCommand(action, keyId = null, value = null) {
-            executeCommand(action, keyId, value);
+            executeCommand(action, keyId, value); // ให้เครื่องตัวเองตอบสนองทันที
             if (currentUser && db) {
                 try {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands'), {
@@ -308,8 +382,26 @@
         function executeCommand(action, keyId, value) {
             if (action === 'play') playSound(keyId);
             if (action === 'stop') stopAll();
-            if (action === 'setVolume') { currentVolume = value; updateVolumeUI(); }
-            if (action === 'setMute') { isMuted = value; updateVolumeUI(); }
+            if (action === 'fadeout') fadeOutAll();
+            if (action === 'setVolume') { 
+                currentVolume = value; 
+                updateVolumeUI(); 
+                updateActiveVolumes(); 
+            }
+            if (action === 'setMute') { 
+                isMuted = value; 
+                updateVolumeUI(); 
+                updateActiveVolumes(); 
+            }
+        }
+
+        function updateActiveVolumes() {
+            // อัปเดตเสียงที่กำลังเล่นอยู่ด้วย (Realtime)
+            if(!audioCtx) return;
+            const targetVol = isMuted ? 0 : currentVolume;
+            activeSources.forEach(s => {
+                try { s.gain.gain.setValueAtTime(targetVol, audioCtx.currentTime); } catch(e){}
+            });
         }
 
         function setMode(newMode) {
@@ -319,32 +411,25 @@
         }
 
         function updateVolumeUI() {
-            document.getElementById('slider-volume').value = currentVolume;
             const btnMute = document.getElementById('btn-mute');
             const iconMute = document.getElementById('mute-icon');
             const txtVol = document.getElementById('volume-text');
+            
             if (isMuted) {
                 btnMute.className = "flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-red-500 text-white animate-pulse";
                 iconMute.className = "fa-solid fa-volume-xmark text-lg";
                 txtVol.innerText = "MUTED";
-                txtVol.className = "text-red-500 font-bold";
+                txtVol.className = "text-xs font-black text-red-500 block mt-[-2px]";
             } else {
                 btnMute.className = "flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-slate-800 text-slate-400 hover:bg-slate-700";
                 iconMute.className = "fa-solid fa-volume-high text-lg";
                 txtVol.innerText = `${Math.round(currentVolume * 100)}%`;
-                txtVol.className = "text-emerald-500 font-bold";
+                txtVol.className = "text-xs font-black text-emerald-500 block mt-[-2px]";
             }
         }
 
         function flashUI(id) {
             let el = document.querySelector(`.sound-btn[data-id="${id}"]`);
-            // ถ้าเป็น id 7 (Victory) ให้กระพริบปุ่มใหญ่ข้างล่างด้วย
-            if(id === '7') {
-                const bottomBtn = document.getElementById('btn-victory-bottom');
-                bottomBtn.classList.add('btn-active');
-                setTimeout(() => bottomBtn.classList.remove('btn-active'), 150);
-            }
-            
             if(!el) return;
             el.classList.add('btn-active');
             setTimeout(() => el.classList.remove('btn-active'), 150);
