@@ -354,11 +354,12 @@
         let isFirstSync = true;
 
         function listenToCloud() {
-            const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands');
+            // เปลี่ยน collection หนีไปใช้ commands_v2 ตัดขาดจากพวกเครื่องเก่าที่เปิดค้างไว้
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands_v2');
             onSnapshot(q, (snapshot) => {
                 if (isFirstSync) {
                     isFirstSync = false;
-                    return; // 🛑 โหลดเว็บครั้งแรก ให้มองข้ามอดีตไปเลย กันเสียงดังรัวๆ ตอนเข้าแอป
+                    return; 
                 }
 
                 snapshot.docChanges().forEach((change) => {
@@ -378,10 +379,11 @@
         }
 
         async function sendCommand(action, keyId = null, value = null) {
-            executeCommand(action, keyId, value); // ให้เครื่องตัวเองตอบสนองทันที
+            executeCommand(action, keyId, value); 
             if (currentUser && db) {
                 try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands'), {
+                    // ส่งข้อมูลเข้าห้องใหม่ commands_v2
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'commands_v2'), {
                         action, keyId, value, sentAt: Date.now(), sender: currentUser.uid
                     });
                 } catch(e) { console.error(e); }
