@@ -238,6 +238,9 @@
             if (appMode === 'remote' || !audioCtx) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
+            // หยุดเสียงเก่าทั้งหมดก่อนเริ่มเสียงใหม่ จะได้ไม่ตีกันมั่ว
+            stopAll();
+            
             if (audioBuffers[id]) {
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffers[id];
