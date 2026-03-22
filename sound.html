@@ -144,6 +144,10 @@
         
         function buildGrid() {
             gridContainer.innerHTML = '';
+            
+            // เก็บเวลาที่กดแต่ละปุ่มแยกกัน
+            let buttonTapTimes = {};
+
             SOUNDS.forEach(s => {
                 const btn = document.createElement('button');
                 btn.className = `sound-btn relative group bg-slate-900 border-2 border-slate-800/50 rounded-[2rem] p-6 md:p-8 flex flex-col items-center gap-5 transition-all touch-manipulation shadow-lg`;
@@ -152,8 +156,37 @@
                     <span class="badge absolute top-5 left-5 text-[10px] font-black px-2.5 py-1 rounded-lg bg-slate-950 text-slate-500 transition-colors">${s.id}</span>
                     <i class="fa-solid ${s.icon} text-4xl md:text-5xl lg:text-6xl ${s.color} transition-transform group-active:scale-90"></i>
                     <span class="label font-black text-xs md:text-sm uppercase tracking-[0.15em] text-slate-400 transition-colors">${s.label}</span>
+                    <span class="hint hidden absolute bottom-2 text-[8px] font-bold text-amber-500 animate-pulse">TAP AGAIN!</span>
                 `;
-                btn.addEventListener('pointerdown', (e) => handleInteraction(e, 'play', s.id));
+                
+                // เปลี่ยนเป็น Double Tap ล้วนๆ
+                btn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    const now = Date.now();
+                    const lastTap = buttonTapTimes[s.id] || 0;
+
+                    if (now - lastTap < 400) {
+                        // กดเบิ้ลสำเร็จ
+                        buttonTapTimes[s.id] = 0; 
+                        btn.classList.remove('shake-hint');
+                        btn.querySelector('.hint').classList.add('hidden');
+                        
+                        handleInteraction(e, 'play', s.id);
+                    } else {
+                        // กดครั้งแรก
+                        buttonTapTimes[s.id] = now;
+                        btn.classList.add('shake-hint');
+                        btn.querySelector('.hint').classList.remove('hidden');
+                        
+                        // ถ้านานเกินเคลียร์ทิ้ง
+                        setTimeout(() => {
+                            btn.classList.remove('shake-hint');
+                            const hint = btn.querySelector('.hint');
+                            if(hint) hint.classList.add('hidden');
+                        }, 400);
+                    }
+                });
+                
                 gridContainer.appendChild(btn);
             });
 
