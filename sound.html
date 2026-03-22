@@ -120,6 +120,7 @@
         let audioCtx = null;
         let audioBuffers = {}; 
         let activeSources = []; // เก็บเป็น Object { source, gain } เพื่อให้หรี่เสียงได้
+        let blockInteraction = false; // ตัวแปรล็อคปุ่มกันนิ้วลั่นเบิ้ล
 
         const manualConfig = {  
             apiKey: "AIzaSyCMZAqnQ-ESuC3YGGnRY0obesoKJgwfcfs",  
@@ -210,13 +211,20 @@
             
             for (const item of SOUNDS) {
                 try {
-                    // เติม ?t=Date.now() ดักแคชไม่ให้มันจำไฟล์เก่า
-                    const res = await fetch(`./${item.file}?t=${Date.now()}`, { cache: "no-store" });
+                    // ดักแคชขั้นสุด ไม่ให้เบราว์เซอร์จำอะไรทั้งนั้น
+                    const res = await fetch(`./${item.file}?t=${Date.now()}`, { 
+                        cache: "no-store",
+                        headers: { 
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'Expires': '0'
+                        }
+                    });
                     if (!res.ok) throw new Error('404');
                     const arrayBuffer = await res.arrayBuffer();
                     audioBuffers[item.id] = await audioCtx.decodeAudioData(arrayBuffer);
                 } catch (err) {
-                    audioBuffers[item.id] = null; 
+                    audioBuffers[item.id] = null; // ถ้าไฟล์หาย จะปล่อยว่างไปเลย ไม่สังเคราะห์เสียงบี๊บแล้ว
                 }
                 loaded++;
                 const p = Math.round((loaded / SOUNDS.length) * 100);
@@ -253,8 +261,6 @@
                 const soundObj = { source, gain };
                 activeSources.push(soundObj);
                 source.onended = () => { activeSources = activeSources.filter(s => s !== soundObj); };
-            } else {
-                playSynthBeep(id);
             }
             flashUI(id);
         }
@@ -306,6 +312,11 @@
 
         function handleInteraction(e, action, keyId = null) {
             if (e) e.preventDefault(); // ป้องกัน Event รวนบนมือถือ
+            
+            if (blockInteraction) return; // 🛑 บล็อคถ้าคำสั่งมันส่งเบิ้ลมารัวๆ
+            blockInteraction = true;
+            setTimeout(() => blockInteraction = false, 150); // ล็อคปุ่มไว้ 0.15 วิ
+            
             sendCommand(action, keyId); // กดปุ๊บส่งปั๊บ ตัดระบบกดเบิ้ลออก
         }
 
@@ -340,20 +351,24 @@
             }
         }
 
+        let isFirstSync = true;
+
         function listenToCloud() {
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'commands');
             onSnapshot(q, (snapshot) => {
+                if (isFirstSync) {
+                    isFirstSync = false;
+                    return; // 🛑 โหลดเว็บครั้งแรก ให้มองข้ามอดีตไปเลย กันเสียงดังรัวๆ ตอนเข้าแอป
+                }
+
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        const isNewCommand = data.sentAt && (data.sentAt > (startTime - 2000));
                         
                         // 🛑 ป้องกันเครื่องตัวเองเล่นเบิ้ล: ถ้าเป็นคนส่งคำสั่งเอง ให้ข้ามไปเลย
                         if (currentUser && data.sender === currentUser.uid) return;
 
-                        if (isNewCommand) {
-                            executeCommand(data.action, data.keyId, data.value);
-                        }
+                        executeCommand(data.action, data.keyId, data.value);
                     }
                 });
             }, (err) => {
